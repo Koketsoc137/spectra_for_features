@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # Step 1: Generate random points in 2D space
 # Function to generate random points on a disk
-def generate_points_on_disk(radius, n_points):
+def generate_points_on_disk(radius, n_points, center = [0,0]):
     """
     Generate random points uniformly on a disk of given radius.
 
@@ -22,8 +22,8 @@ def generate_points_on_disk(radius, n_points):
     radii = radius * np.sqrt(np.random.uniform(0, 1, n_points))
     
     # Convert polar coordinates to Cartesian coordinates
-    x = radii * np.cos(angles)
-    y = radii * np.sin(angles)
+    x = radii * np.cos(angles) +center[0]
+    y = radii * np.sin(angles)  +center[0]
     
     # Combine x and y into a single array
     points = np.column_stack((x, y))
@@ -42,7 +42,7 @@ def generate_random_points_2d(n_points, grid_size):
     Returns:
         points (np.ndarray): 2D array of points (n_points, 2).
     """
-    points = np.random.uniform(0, grid_size, size=(n_points, 2))
+    points = np.random.uniform(-grid_size/2, grid_size/2, size=(n_points, 2))
     return points
 
 
@@ -80,5 +80,28 @@ def scatter_points(points):
     #plt.xlim(-00,500)
     #plt.ylim(-500,500)
     plt.axis('equal')
+    plt.show()
+
+
+def scatter_overlay(points1, points2):
+    plt.scatter(points1[:, 0], points1[:, 1], color='blue', label='Set 1')
+    plt.scatter(points2[:, 0], points2[:, 1], color='red', label='Set 2')
+    plt.legend()
+    plt.show()
+
+# Step 4: Plot the 2-point autocorrelation function
+def plot_autocorrelation_2d(separation, correlation,title = "Correlation"):
+    """
+    Plot the 2-point autocorrelation function.
+
+    Args:
+        bin_centers (np.ndarray): Bin centers for the autocorrelation.
+        correlation (np.ndarray): Autocorrelation values in each bin.
+    """
+    plt.plot(separation, correlation, marker='o')
+    plt.title(title)
+    plt.xlabel('Separation')
+    plt.ylabel('Frequency of separation')
+    plt.grid(False)
     plt.show()
 
