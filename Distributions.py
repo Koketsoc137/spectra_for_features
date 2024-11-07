@@ -1,5 +1,38 @@
 import numpy as np
 import matplotlib.pyplot as plt
+#matplotlib.rc('font', **font)
+fig = plt.figure(dpi = 300)
+plt.style.use("default")
+plt.figure(figsize=(15,10))
+plt.rcParams.update({'font.size': 20}) 
+
+
+
+
+import numpy as np
+
+def reduced_chi_square(observed, errors, expected = None):
+
+    chi_square = np.nansum([o**2/error**2 for o,error in zip(observed,errors)])
+
+    return chi_square/np.count_nonzero(~np.isnan(observed))
+
+
+def reduced_nonchi_square(observed, errors, expected = None):
+
+    nonchi_square = np.nansum([o**2 for o in observed])
+    nonchi_error = np.nansum([error for error in errors])
+
+    return nonchi_square/np.count_nonzero(~np.isnan(observed)), nonchi_error/np.count_nonzero(~np.isnan(nonchi_error))#/np.count_nonzero(~np.isnan(observed)),nonchi_error/np.count_nonzero(~np.isnan(nonchi_error))
+
+
+
+def first_order_structure(bootstraps, error):
+
+    corr = np.ma.masked_invalid(bootstraps.mean(0))
+
+    return reduced_nonchi_square(corr, error, expected = None)
+
 
 
 # Step 1: Generate random points in 2D space
@@ -75,8 +108,8 @@ def sample_means_and_covariances(dimensions, mean_range, cov_range, num_samples)
 
 
 
-def scatter_points(points):
-    plt.scatter(points[:, 0], points[:, 1], alpha=0.2)
+def scatter_points(points,alpha = 0.2):
+    plt.scatter(points[:, 0], points[:, 1], alpha=alpha)
     #plt.xlim(-00,500)
     #plt.ylim(-500,500)
     plt.axis('equal')
