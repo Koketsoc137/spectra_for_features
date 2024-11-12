@@ -20,16 +20,26 @@ def reduced_chi_square(observed, errors, expected = None):
 
 def reduced_nonchi_square(observed, errors, expected = None):
 
-    nonchi_square = np.nansum([o**2 for o in observed])
-    nonchi_error = np.nansum([error for error in errors])
+    nonchi_square = np.sum(observed)
+    nonchi_error = np.sum(errors)
 
-    return nonchi_square/np.count_nonzero(~np.isnan(observed)), nonchi_error/np.count_nonzero(~np.isnan(nonchi_error))#/np.count_nonzero(~np.isnan(observed)),nonchi_error/np.count_nonzero(~np.isnan(nonchi_error))
+    return nonchi_square/len(observed), nonchi_error/len(errors)#/np.count_nonzero(~np.isnan(observed)),nonchi_error/np.count_nonzero(~np.isnan(nonchi_error))
 
 
 
-def first_order_structure(bootstraps, error):
+def first_order_structure(bootstraps):
 
-    corr = np.ma.masked_invalid(bootstraps.mean(0))
+    Nbootstrap = len(bootstraps)
+    squared_bootstraps = np.zeros((Nbootstrap, len(bootstraps[0])))
+                          
+    for i in range(Nbootstrap):
+                              
+        squared_bootstraps[i] = np.array([o**2 for o in bootstraps[i]])
+    
+    #Compute the mean and error, ignore the nans
+    
+    corr = np.ma.masked_invalid(squared_bootstraps).mean(0)
+    error = np.ma.masked_invalid(squared_bootstraps).std(0)
 
     return reduced_nonchi_square(corr, error, expected = None)
 
