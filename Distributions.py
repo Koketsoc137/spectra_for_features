@@ -1,10 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 #matplotlib.rc('font', **font)
-fig = plt.figure(dpi = 300)
-plt.style.use("default")
-plt.figure(figsize=(15,10))
-plt.rcParams.update({'font.size': 20}) 
+
 
 
 
@@ -74,7 +71,7 @@ def generate_points_on_disk(radius, n_points, center = [0,0]):
     return points
 
 
-def generate_random_points_2d(n_points, grid_size):
+def generate_random_points_2d(n_points, grid_size, seed = 42):
     """
     Generate random points in 2D space.
 
@@ -85,13 +82,16 @@ def generate_random_points_2d(n_points, grid_size):
     Returns:
         points (np.ndarray): 2D array of points (n_points, 2).
     """
+    np.random.seed(seed)
     points = np.random.uniform(-grid_size/2, grid_size/2, size=(n_points, 2))
     return points
 
 
 
-def generate_gaussian_points(mean, cov, num_points, dimensions=2):
+def generate_gaussian_points(mean, cov, num_points, dimensions=2,seed = 42):
      ##points sampled from a gaussian distribution
+    np.random.seed(seed)
+
     
     points = np.random.multivariate_normal(mean, cov, num_points)
 
@@ -99,9 +99,10 @@ def generate_gaussian_points(mean, cov, num_points, dimensions=2):
     return points
 
 
-def sample_means_and_covariances(dimensions, mean_range, cov_range, num_samples):
+def sample_means_and_covariances(dimensions, mean_range, cov_range, num_samples,seed = 42):
 
     # Sample means from a uniform distribution
+    np.random.seed(seed)
     means = np.random.uniform(mean_range[0], mean_range[1], size=(num_samples, dimensions))
     
     # Sample covariance matrices
@@ -119,6 +120,10 @@ def sample_means_and_covariances(dimensions, mean_range, cov_range, num_samples)
 
 
 def scatter_points(points,alpha = 0.2):
+    fig = plt.figure(dpi = 300)
+    plt.style.use("default")
+    plt.figure(figsize=(15,10))
+    plt.rcParams.update({'font.size': 20}) 
     plt.scatter(points[:, 0], points[:, 1], alpha=alpha)
     #plt.xlim(-00,500)
     #plt.ylim(-500,500)
@@ -141,6 +146,10 @@ def plot_autocorrelation_2d(separation, correlation,title = "Correlation"):
         bin_centers (np.ndarray): Bin centers for the autocorrelation.
         correlation (np.ndarray): Autocorrelation values in each bin.
     """
+    fig = plt.figure(dpi = 300)
+    plt.style.use("default")
+    plt.figure(figsize=(15,10))
+    plt.rcParams.update({'font.size': 20}) 
     plt.plot(separation, correlation, marker='o')
     plt.title(title)
     plt.xlabel('Separation')
