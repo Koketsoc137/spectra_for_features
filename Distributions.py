@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def reduced_chi_square(observed, errors, expected = None):
-
+    
     chi_square = np.nansum([o**2/error**2 for o,error in zip(observed,errors)])
 
     return chi_square/np.count_nonzero(~np.isnan(observed))
@@ -104,6 +104,34 @@ def sample_means_and_covariances(dimensions, mean_range, cov_range, num_samples,
     # Sample means from a uniform distribution
     np.random.seed(seed)
     means = np.random.uniform(mean_range[0], mean_range[1], size=(num_samples, dimensions))
+    space_center = 50
+    mean_array = []
+
+    space_center = (mean_range[0] - mean_range[1])/2
+    
+    update_array = np.random.uniform(space_center, space_center, size=(1, dimensions))[0]
+    #place the first mean in tne center
+    
+    mean_array.append(update_array)
+    update_array  = update_array/num_samples  #The large the number of gaussians the more
+                                            #tightly packed youd have to place them
+    spacing = update_array[0]
+
+    dimension_to_slide_in = 0
+    sign = 1
+    for i in range(1,num_samples):
+        #cycle throu0gh the dimensions to place the other gaussians around
+        next_mean = np.copy(mean_array[0])
+        next_mean[dimension_to_slide_in] += sign*spacing*i
+        print(next_mean)
+        mean_array.append(next_mean)
+        
+        dimension_to_slide_in +=1
+        if dimension_to_slide_in == dimensions:
+            dimension_to_slide_in = 0
+            sign = sign*-1
+    means = mean_array
+    print(means)
     
     # Sample covariance matrices
     covariances = []
