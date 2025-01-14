@@ -2,10 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 #matplotlib.rc('font', **font)
 
-
-
-
-
 import numpy as np
 
 def reduced_chi_square(observed, errors, expected = None):
@@ -38,7 +34,7 @@ def first_order_structure(bootstraps):
     corr = np.ma.masked_invalid(squared_bootstraps).mean(0)
     error = np.ma.masked_invalid(squared_bootstraps).std(0)
 
-    return reduced_nonchi_square(corr, error, expected = None)
+    return corr,reduced_nonchi_square(corr, error, expected = None)
 
 
 
@@ -109,50 +105,38 @@ def sample_means_and_covariances(dimensions, mean_range, cov_range, num_samples,
 
     space_center = (mean_range[0] - mean_range[1])/2
     
-    update_array = np.random.uniform(space_center, space_center, size=(1, dimensions))[0]
-    #place the first mean in tne center
-    
-    mean_array.append(update_array)
-    update_array  = update_array/num_samples  #The large the number of gaussians the more
-                                            #tightly packed youd have to place them
-    spacing = update_array[0]
-
-    dimension_to_slide_in = 0
-    sign = 1
-    for i in range(1,num_samples):
-        #cycle throu0gh the dimensions to place the other gaussians around
-        next_mean = np.copy(mean_array[0])
-        next_mean[dimension_to_slide_in] += sign*spacing*i
-        print(next_mean)
-        mean_array.append(next_mean)
-        
-        dimension_to_slide_in +=1
-        if dimension_to_slide_in == dimensions:
-            dimension_to_slide_in = 0
-            sign = sign*-1
-    means = mean_array
-    print(means)
-    
     # Sample covariance matrices
     covariances = []
+    covariances_sparse = []
     for _ in range(num_samples):
         # Generate a random matrix and force it to be positive semi-definite
         A = np.random.uniform(cov_range[0], cov_range[1], size=(dimensions, dimensions))
         covariance_matrix = np.dot(A, A.T)  # A * A.T ensures the matrix is positive semi-definite
         covariances.append(covariance_matrix)
-    
+
+        sparse_matrix = np.copy(covariance_matrix)
+
+        np.fill_diagonal(sparse_matrix, np.diagonal(sparse_matrix)*2)
+  
+        covariances_sparse.append(sparse_matrix)
+
+       
     covariances = np.array(covariances)
+
     
-    return means, covariances
+    covariances_sparse = np.array(covariances_sparse)
+    
+    return means, covariances, covariances_sparse
 
 
 
-def scatter_points(points,alpha = 0.2):
+def scatter_points(points,alpha = 0.2, title = ""):
     fig = plt.figure(dpi = 300)
     plt.style.use("default")
     plt.figure(figsize=(15,10))
     plt.rcParams.update({'font.size': 20}) 
     plt.scatter(points[:, 0], points[:, 1], alpha=alpha)
+    plt.title(title)
     #plt.xlim(-00,500)
     #plt.ylim(-500,500)
     plt.axis('equal')
@@ -160,8 +144,8 @@ def scatter_points(points,alpha = 0.2):
 
 
 def scatter_overlay(points1, points2):
-    plt.scatter(points1[:, 0], points1[:, 1], color='blue', label='Set 1')
-    plt.scatter(points2[:, 0], points2[:, 1], color='red', label='Set 2')
+    plt.scatter(points1[:, 0], points1[:, 1], color='blue', label='Set 1',s = 0.5)
+    plt.scatter(points2[:, 0], points2[:, 1], color='red', label='Set 2', s = 0.5)
     plt.legend()
     plt.show()
 
