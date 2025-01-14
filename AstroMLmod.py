@@ -2,10 +2,14 @@ import numpy as np
 
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
+import random
+import Distributions as dist
+
+random.seed(42)
 
 
 def two_point(data, bins, method='standard',
-              data_R=None, random_state=None):
+              data_R=None, random_state=42):
     """Two-point correlation function
 
     Parameters
@@ -54,6 +58,7 @@ def two_point(data, bins, method='standard',
         data_R = np.asarray(data_R)
         if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
             raise ValueError('data_R must have same n_features as data')
+    import Distributions as dist
 
     factor = len(data_R) * 1. / len(data)
 
@@ -82,13 +87,13 @@ def two_point(data, bins, method='standard',
 
     corr[RR_zero] = np.nan
 
-    return corr
+    return corr, data_R
 
 
 
 def bootstrap_two_point(data, bins, Nbootstrap=10,
                         method='standard', return_bootstraps=False,
-                        random_state=None,data_R = None):
+                        random_state=None,data_R = None,sub_sample_fraction = 0.1):
     """Bootstrapped two-point correlation function
 
     Parameters
@@ -134,24 +139,25 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     n_samples, n_features = data.shape
 
     # get the baseline estimate
-    corr = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
+    corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
+    
 
     bootstraps = np.zeros((Nbootstrap, len(corr)))
 
     if data_R is not None:
     
         for i in range(Nbootstrap):
-            indices = rng.randint(0, n_samples, n_samples)
-            bootstraps[i] = two_point(data[indices, :], bins, method=method,
-                                      random_state=rng,data_R = data_R[indices,:])
+            indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
+            bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
+                                      random_state=rng,data_R = data_R)
 
     else:
     
         for i in range(Nbootstrap):
-            indices = rng.randint(0, n_samples, n_samples)
-            bootstraps[i] = two_point(data[indices, :], bins, method=method,
+            indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
+            bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
                                       random_state=rng)
-
+  
     # use masked std dev in case of NaNs
     corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
 
