@@ -7,9 +7,31 @@ import Distributions as dist
 
 random.seed(42)
 
+def scale_and_sample(pca_features, sub_sample_size = 8000, n_output_features = 20, seed = 42):
+
+    #obtain an aray of the elements of highest variance
+    first_elements = pca_features[:,0]
+    #compute the mean and std
+    mean = np.mean(first_elements)
+    std_dev = np.std(first_elements)
+    np.seed = seed
+        
+    #scale the representations
+    scaled_rep = np.array([(representation-mean)/std_dev for representation in pca_features])
+
+    #Subsample
+    
+    sampled = scaled_rep[np.random.choice(pca_features.shape[0], sub_sample_size, replace=False)]
+    #Reduce the dimension, get only the first n features 
+    smaller = []
+    for sample in sampled:
+        smaller.append(sample[:n_output_features])
+
+    return smaller
+
 
 def two_point(data, bins, method='standard',
-              data_R=None, random_state=42):
+              data_R=None, random_state=42, metric = "manhattan"):
     """Two-point correlation function
 
     Parameters
@@ -63,8 +85,8 @@ def two_point(data, bins, method='standard',
     factor = len(data_R) * 1. / len(data)
 
     # Fast two-point correlation functions added in scikit-learn v. 0.14
-    KDT_D = KDTree(data)
-    KDT_R = KDTree(data_R)
+    KDT_D = KDTree(data,metric = metric)
+    KDT_R = KDTree(data_R, metric = metric)
 
     counts_DD = KDT_D.two_point_correlation(data, bins)
     counts_RR = KDT_R.two_point_correlation(data_R, bins)
@@ -85,7 +107,10 @@ def two_point(data, bins, method='standard',
 
         corr = (factor ** 2 * DD - 2 * factor * DR + RR) / RR
 
+    #
     corr[RR_zero] = np.nan
+    #dist.scatter_points(data_R,alpha = 0.1,title =  "Gaussian space sparse")  
+
 
     return corr, data_R
 
@@ -139,17 +164,18 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     n_samples, n_features = data.shape
 
     # get the baseline estimate
-    corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
+    #corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
     
 
-    bootstraps = np.zeros((Nbootstrap, len(corr)))
+    bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
 
     if data_R is not None:
     
         for i in range(Nbootstrap):
             indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
             bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
-                                      random_state=rng,data_R = data_R)
+                                      random_state=rng,data_R = data_R[indices, :])
+            print(i)
 
     else:
     
@@ -157,11 +183,13 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
             indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
             bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
                                       random_state=rng)
+            
+            
   
     # use masked std dev in case of NaNs
     corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
 
     if return_bootstraps:
-        return corr, corr_err, bootstraps
+        return bootstraps
     else:
         return corr, corr_err

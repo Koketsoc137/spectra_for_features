@@ -9,6 +9,12 @@ def reduced_chi_square(observed, errors, expected = None):
     chi_square = np.nansum([o**2/error**2 for o,error in zip(observed,errors)])
 
     return chi_square/np.count_nonzero(~np.isnan(observed))
+    
+def norm(observed, expected = None):
+    
+    norm = np.nansum([observed**2])
+
+    return norm/np.count_nonzero(~np.isnan(observed))
 
 
 def reduced_nonchi_square(observed, errors, expected = None):
@@ -144,8 +150,8 @@ def scatter_points(points,alpha = 0.2, title = ""):
 
 
 def scatter_overlay(points1, points2):
-    plt.scatter(points1[:, 0], points1[:, 1], color='blue', label='Set 1',s = 0.5)
-    plt.scatter(points2[:, 0], points2[:, 1], color='red', label='Set 2', s = 0.5)
+    plt.scatter(points1[:, 0], points1[:, 1], color='blue', label='Set 1',s = 0.05)
+    plt.scatter(points2[:, 0], points2[:, 1], color='red', label='Set 2', s = 0.05)
     plt.legend()
     plt.show()
 
