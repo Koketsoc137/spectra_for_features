@@ -1,5 +1,5 @@
 import numpy as np
-
+import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
@@ -31,7 +31,7 @@ def scale_and_sample(pca_features, sub_sample_size = 8000, n_output_features = 2
 
 
 def two_point(data, bins, method='standard',
-              data_R=None, random_state=42, metric = "manhattan"):
+              data_R=None, random_state=42, metric = "euclidean"):
     """Two-point correlation function
 
     Parameters
@@ -158,13 +158,14 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     elif data.ndim != 2:
         raise ValueError("data should be 1D or 2D")
 
-    if Nbootstrap < 2:
-        raise ValueError("Nbootstrap must be greater than 1")
 
     n_samples, n_features = data.shape
 
     # get the baseline estimate
-    #corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
+    print(n_features)
+    corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
+    if Nbootstrap ==0:
+        return corr, data_R
     
 
     bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
@@ -193,3 +194,37 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
         return bootstraps
     else:
         return corr, corr_err
+
+def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
+                    bin_number = 100, label = "correlation on features"):
+
+    bins = np.linspace(min_dist, max_dist, bin_number)
+
+    Eff_mean = np.mean(data, axis = 0)
+    Eff_std = np.std(data,axis = 0, ddof=1)
+    length, dimension = data.shape
+
+    # Sample covariance matrices
+        # Generate a random matrix and force it to be positive semi-definite
+    Eff_cov = np.random.uniform(0, 0, size=(dimension, dimension))
+   
+    np.fill_diagonal(Eff_cov, Eff_std)
+  
+    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data))
+    corr, dcorr= bootstrap_two_point(data, bins, 
+                                            data_R = background,Nbootstrap=0,
+                                            sub_sample_fraction =0.3,
+                                            method = 'standard',  
+                                            return_bootstraps =False)
+
+    fig = plt.figure(dpi = 300)
+    plt.style.use("default")
+    plt.figure(figsize=(15,10))
+    plt.rcParams.update({'font.size': 20}) 
+
+    plt.plot(bins[1:],corr)
+    plt.title(label)
+    plt.show()
+
+
+
