@@ -11,8 +11,6 @@ import numpy as np
 #import VISUAL as viz
 
 
-
-
 meerkat_dir = "/idia/projects/hippo/Koketso/meerkat"
 dogbreed_dir = "/idia/projects/hippo/Koketso/dog_breeds"
 galaxyzoo_dir = "/idia/projects/hippo/Koketso/galaxy_zoo_sub"
@@ -146,6 +144,43 @@ class Custom_labelled_pandas(torch.utils.data.Dataset):
         
         # defined the transform below
         return x,target
+class ArrayDataset(Dataset):
+    def __init__(self, images, labels=None,names = None, transform=None):
+        """
+        Args:
+            images (numpy.ndarray or torch.Tensor): The array of images.
+            labels (list or numpy.ndarray, optional): Corresponding labels.
+            transform (callable, optional): Optional transform to apply.
+        """
+        self.images = images
+        self.labels = labels
+        self.transform = tv.transforms.Compose([
+                            #tv.transforms.ToPILImage(),
+                            #tv.transforms.Resize((424,424)),
+                            tv.transforms.Resize(self.resize),
+                            tv.transforms.CenterCrop(self.crop),          
+                            tv.transforms.ToTensor(),
+                            tv.transforms.Grayscale(num_output_channels = 3),
+                            tv.transforms.Normalize(mean=self.mean, std=self.std)
+                            ])
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]
+
+        # Convert to PIL Image if it's a NumPy array
+        if isinstance(image, np.ndarray):
+            image = Image.fromarray(image.astype(np.uint8))
+
+        # Apply transformations
+        if self.transform:
+            image = self.transform(image)
+
+        if self.labels is not None:
+            return image, self.labels[idx]
+        else:
+            return image
     
     
 def dataset(data):
