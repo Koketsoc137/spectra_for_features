@@ -1,5 +1,6 @@
 import torch
 import torchvision as tv
+from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Subset
@@ -8,9 +9,8 @@ import kornia
 import random
 import time
 import numpy as np
+import skdim
 #import VISUAL as viz
-
-
 
 
 meerkat_dir = "/idia/projects/hippo/Koketso/meerkat"
@@ -146,6 +146,54 @@ class Custom_labelled_pandas(torch.utils.data.Dataset):
         
         # defined the transform below
         return x,target
+class ArrayDataset(Dataset):
+    def __init__(self, images, labels=None,names = None, transform=None, resize = 256,crop = 224,mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]):
+        """
+        Args:
+            images (numpy.ndarray or torch.Tensor): The array of images.
+            labels (list or numpy.ndarray, optional): Corresponding labels.
+            transform (callable, optional): Optional transform to apply.
+        """
+        self.images = images
+        self.labels = labels
+        self.names = names
+        self.resize = resize
+        self.crop = crop
+        self.mean = mean
+        self.std = std
+        self.transform = tv.transforms.Compose([
+                            #tv.transforms.ToPILImage(),
+                            #tv.transforms.Resize((424,424)),
+                           # tv.transforms.ToTensor(),
+                            tv.transforms.Resize(self.resize),
+                            tv.transforms.CenterCrop(self.crop), 
+                            tv.transforms.RandomResizedCrop(size = self.crop,scale=(0.7, 1.0)),   # Randomly crop and pad images
+                            tv.transforms.RandomRotation((0,360)),
+                            #tv.transforms.RandomHorizontalFlip(),      # Random horizontal flip
+                            #tv.transforms.RandomVerticalFlip(),
+                            tv.transforms.ToTensor(),
+                            tv.transforms.Normalize(mean=self.mean, std=self.std)
+                            ])
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]
+        labels = self.labels[idx]
+
+        # Convert to PIL Image if it's a NumPy array
+        if isinstance(image, np.ndarray):
+            image = Image.fromarray(image.astype(np.uint8))
+            
+        #labels = torch.from_numpy(labels.astype(np.int64))
+
+        # Apply transformations
+        if self.transform is not None:
+            image = self.transform(image)
+        if self.labels is not None:
+            return image, labels, self.names[idx]
+        else:
+            return image
     
     
 def dataset(data):
@@ -335,10 +383,62 @@ def features(loader,model,named = True,batch_size = 128,device = torch.device('c
     return rep,labels
 
 
+def get_representations(model = None,loader = None, batch_size = 128,patch_level_features = False, epoch = 0,device = "cuda"):
+    #initialise global variable
+    rep = []
+    """
+    def hook_fn(module, input, output):
+        flat_output = output.view(output.size(0), -1).cpu()
+        print(TwoNN.twonn(flat_output,plot = False))
+        rep.append(flat_output)
+    #model.to(device) model already  on device
+    """
+    #hook = model.avgpool.register_forward_hook(hook_fn)
+    model.classifier[1] = torch.nn.Identity()
+    model.eval()
+
+
+    # representations
+    rep = []
+    twoNNs = []
+    with torch.no_grad():
+            
+        for image,label,name in loader:                                   #name
+
+            image = image.to(device)
+            output = model(image).cpu()
+            #Id = TwoNN.twonn(output,plot = False)[0][0].item()
+            rep.append(output)
+            torch.cuda.empty_cache()
+    #twoNNs = np.array(twoNNs)
+    
+            
+    #hook.remove()
+    rep2 = []
+
+    for i in range(len(rep)):
+        for j in range(len(rep[i])):
+            #images2.append(images[i][j].cpu().numpy()) #Images
+            rep_ = rep[i][j].numpy()
+
+            rep2.append(rep_)        #Representations
+
+    return rep2
+
+    #umap = viz.umap(rep2,name = "Features on epoch:"+str(epoch))
+    #pca = viz.pca(rep2,variance = 0.95, return_n_components = 20)
+    #pca = pca/np.max(pca)
+    #print("Correlating and plotting")
+    #AstroMLmod.correlate_and_plot(umap,min_dist = 0.0, max_dist =2.5, label = "Correlation on umap epoch:"+str(epoch))
+    #viz.pca(rep2,variance = 0.95)
+    #print(np.mean(twoNNs, axis = 0),np.std(twoNNs,axis = 0, ddof=1))
+    
 
 
 
-#visualize weights for alexnet - first conv layer
+
+
+#visualize weights for Alexnet - first conv layer
 #plot_weights(resnet50, 0, single_channel = False)
 
     
