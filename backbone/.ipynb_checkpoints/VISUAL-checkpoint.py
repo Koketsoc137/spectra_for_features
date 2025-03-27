@@ -146,9 +146,11 @@ def  umap(dataset,scatter = True,name = "UMAP", dim = 2, min_dist = 0.1, n_neigh
      output_metric_kwds=None, random_state=None, repulsion_strength=1.0,
      set_op_mix_ratio=1.0, spread=1.0, target_metric='categorical',
      target_metric_kwds=None, target_n_neighbors=-1, target_weight=0.5,
-     transform_queue_size=4.0, transform_seed=4, unique=False, verbose=True)
+     transform_queue_size=4.0, transform_seed=4, unique=False, verbose=False)
     
     u_embedded = reducer.fit_transform(dataset)
+    u_embedded = u_embedded/np.max(u_embedded)
+
         #Save 2D represenatation
 
     pkl_filename = "nn"+str(n_neighbors)+"md"+str(min_dist)+".txt"
@@ -159,14 +161,17 @@ def  umap(dataset,scatter = True,name = "UMAP", dim = 2, min_dist = 0.1, n_neigh
     print("UMAP reduced in ",time.time() -start)
 
     if scatter == True and dim ==2:
-        plt.style.use("seaborn-v0_8")
+        fig = plt.figure(dpi = 300)
+        plt.style.use("default")
+        plt.figure(figsize=(15,10))
+        plt.rcParams.update({'font.size': 20}) 
         plt.scatter(u_embedded[:,0],u_embedded[:,1],s = 10,c = "black",alpha = alpha)
         legend = [ "Distribution" ]
         
         plt.legend(legend, 
                    loc='lower right')
         plt.title(name)
-        #plt.axis('off')
+        plt.axis('off')
         plt.savefig(name+".png")
         plt.show()
     
