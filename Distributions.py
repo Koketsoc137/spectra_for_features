@@ -113,26 +113,26 @@ def sample_means_and_covariances(dimensions, mean_range, cov_range, num_samples,
     
     # Sample covariance matrices
     covariances = []
-    covariances_sparse = []
+    #covariances_sparse = []
     for _ in range(num_samples):
         # Generate a random matrix and force it to be positive semi-definite
         A = np.random.uniform(cov_range[0], cov_range[1], size=(dimensions, dimensions))
         covariance_matrix = np.dot(A, A.T)  # A * A.T ensures the matrix is positive semi-definite
         covariances.append(covariance_matrix)
 
-        sparse_matrix = np.copy(covariance_matrix)
+       # sparse_matrix = np.copy(covariance_matrix)
 
-        np.fill_diagonal(sparse_matrix, np.diagonal(sparse_matrix)*2)
+       # np.fill_diagonal(sparse_matrix, np.diagonal(sparse_matrix)*2)
   
-        covariances_sparse.append(sparse_matrix)
+       # covariances_sparse.append(sparse_matrix)
 
        
     covariances = np.array(covariances)
 
     
-    covariances_sparse = np.array(covariances_sparse)
+  #  covariances_sparse = np.array(covariances_sparse)
     
-    return means, covariances, covariances_sparse
+    return means, covariances#, covariances_sparse
 
 
 
