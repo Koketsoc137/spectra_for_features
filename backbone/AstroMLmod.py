@@ -15,6 +15,10 @@ def norm(observed, expected = None):
     return norm/np.count_nonzero(~np.isnan(observed))
 
 def reduced_chi_square(observed, errors, expected = None):
+    #Mask all the invalid bins
+    valid = (~np.isnan(observed))&(~np.isnan(errors)) & (errors != 0)
+    observed = observed[valid]
+    errors = errors[valid]
     
     chi_square = np.nansum([o**2/error**2 for o,error in zip(observed,errors)])
 
@@ -192,9 +196,10 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
     n_samples, n_features = data.shape
 
-    # get the baseline estimate
-    corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
+
     if Nbootstrap ==0:
+        # get the baseline estimate
+        corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
         return corr, data_R
     
 
@@ -206,7 +211,6 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
             indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
             bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
                                       random_state=rng,data_R = data_R[indices, :])
-            print(i)
 
     else:
     
@@ -218,6 +222,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
             
   
     # use masked std dev in case of NaNs
+    corr = np.ma.masked_invalid(bootstraps).mean(0)
     corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
 
     if return_bootstraps:
@@ -241,22 +246,26 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data))
     corr, dcorr= bootstrap_two_point(data, bins, 
                                             data_R = background,Nbootstrap=5,
-                                            sub_sample_fraction =0.3,
+                                            sub_sample_fraction =0.5,
                                             method = 'standard',  
-                                            return_bootstraps =True)
+                                            return_bootstraps =False)
     
-    #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
-    NormScore = norm(corr,bootstraps)
-    print("Structure score: ",NormScore)
+    StructureScore = reduced_chi_square(corr, dcorr, expected = None)
+    NormScore = norm(corr,dcorr)
+    print("Chi-Square score: ",StructureScore)
+    print("L2 Norm score: ",NormScore)
+
+    
 
     fig = plt.figure(dpi = 300)
     plt.style.use("default")
     plt.figure(figsize=(15,10))
-    plt.rcParams.update({'font.size': 20}) 
-
+    plt.rcParams.update({'font.size': 20})
     plt.plot(bins[1:],corr)
+    plt.fill_between(bins[1:],corr-dcorr, corr+dcorr, color = "blue",alpha = .3)
     plt.title(label)
     plt.show()
+    return StructureScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
