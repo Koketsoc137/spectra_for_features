@@ -235,7 +235,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
                     bin_number = 100, label = "correlation on features"):
 
     bins = np.linspace(min_dist, max_dist, bin_number)
-    data = data/np.max(data)
+    data = data/max(np.max(data),abs(np.min(data))
 
     Eff_mean = np.mean(data, axis = 0)
     Eff_cov = np.cov(data,rowvar = False)
@@ -265,7 +265,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     plt.fill_between(bins[1:],corr-dcorr, corr+dcorr, color = "blue",alpha = .3)
     plt.title(label)
     plt.show()
-    return StructureScore
+    return StructureScore, NormScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
