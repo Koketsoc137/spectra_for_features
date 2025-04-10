@@ -232,10 +232,10 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
 
 def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
-                    bin_number = 100, label = "correlation on features"):
+                    bin_number = 100, label = "correlation on features", plot = True):
 
     bins = np.linspace(min_dist, max_dist, bin_number)
-    data = data/max(np.max(data),abs(np.min(data))
+    data = data/max(np.max(data),abs(np.min(data)))
 
     Eff_mean = np.mean(data, axis = 0)
     Eff_cov = np.cov(data,rowvar = False)
@@ -249,6 +249,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
                                             sub_sample_fraction =0.5,
                                             method = 'standard',  
                                             return_bootstraps =False)
+
     
     StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     NormScore = norm(corr,dcorr)
@@ -256,16 +257,19 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     print("L2 Norm score: ",NormScore)
 
     
+    if plot:
+        fig = plt.figure(dpi = 300)
+        plt.style.use("default")
+        plt.figure(figsize=(15,10))
+        plt.rcParams.update({'font.size': 20})
+        plt.plot(bins[1:],corr)
+        plt.fill_between(bins[1:],corr-dcorr, corr+dcorr, color = "blue",alpha = .3)
+        plt.title(label)
+        plt.show()
+        return StructureScore, NormScore
 
-    fig = plt.figure(dpi = 300)
-    plt.style.use("default")
-    plt.figure(figsize=(15,10))
-    plt.rcParams.update({'font.size': 20})
-    plt.plot(bins[1:],corr)
-    plt.fill_between(bins[1:],corr-dcorr, corr+dcorr, color = "blue",alpha = .3)
-    plt.title(label)
-    plt.show()
-    return StructureScore, NormScore
+    else:
+        return corr, dcorr, Structurescore,NormScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
