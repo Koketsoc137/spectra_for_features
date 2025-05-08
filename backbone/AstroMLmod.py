@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
-import Distributions as dist
+import spectra_for_features.backbone.Distributions as dist
 import skdim
 
 random.seed(42)
@@ -16,13 +16,14 @@ def norm(observed, expected = None):
 
 def reduced_chi_square(observed, errors, expected = None):
     #Mask all the invalid bins
+    
     valid = (~np.isnan(observed))&(~np.isnan(errors)) & (errors != 0)
     observed = observed[valid]
     errors = errors[valid]
     
-    chi_square = np.nansum([o**2/error**2 for o,error in zip(observed,errors)])
+    chi_square = np.sum([o**2/error**2 for o,error in zip(observed,errors)])
 
-    return chi_square/np.count_nonzero(~np.isnan(observed))
+    return chi_square/len(observed)
 
 
 
@@ -115,7 +116,6 @@ def two_point(data, bins, method='standard',
         data_R = np.asarray(data_R)
         if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
             raise ValueError('data_R must have same n_features as data')
-    import Distributions as dist
 
     factor = len(data_R) * 1. / len(data)
 
@@ -232,7 +232,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
 
 def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
-                    bin_number = 100, label = "correlation on features", plot = True):
+                    bin_number = 100,plot = True, label = "correlation on features",fig_name ="tpcor"):
 
     bins = np.linspace(min_dist, max_dist, bin_number)
     data = data/max(np.max(data),abs(np.min(data)))
@@ -265,11 +265,11 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
         plt.plot(bins[1:],corr)
         plt.fill_between(bins[1:],corr-dcorr, corr+dcorr, color = "blue",alpha = .3)
         plt.title(label)
-        plt.show()
+        plt.savefig(fig_name+".png")
         return StructureScore, NormScore
 
     else:
-        return corr, dcorr, Structurescore,NormScore
+        return Structurescore,NormScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
