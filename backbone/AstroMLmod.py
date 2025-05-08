@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
-import spectra_for_features.backbone.Distributions as dist
+import backbone.Distributions as dist
 import skdim
 
 random.seed(42)
@@ -17,12 +17,13 @@ def norm(observed, expected = None):
 def reduced_chi_square(observed, errors, expected = None):
     #Mask all the invalid bins
     
+    print(sum(errors ==0))
     valid = (~np.isnan(observed))&(~np.isnan(errors)) & (errors != 0)
     observed = observed[valid]
     errors = errors[valid]
     
     chi_square = np.sum([o**2/error**2 for o,error in zip(observed,errors)])
-
+    print(len(observed))
     return chi_square/len(observed)
 
 
@@ -232,18 +233,25 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
 
 def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
-                    bin_number = 100,plot = True, label = "correlation on features",fig_name ="tpcor"):
+                    bin_number = 100,plot = True, label = "correlation on features",fig_name ="tpcor",return_corr = False):
 
-    bins = np.linspace(min_dist, max_dist, bin_number)
     data = data/max(np.max(data),abs(np.min(data)))
 
     Eff_mean = np.mean(data, axis = 0)
     Eff_cov = np.cov(data,rowvar = False)
+
     length, dimension = data.shape
 
     # Sample covariance matrices
   
     background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data))
+
+
+    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 99)*2 #probe to the 99th percentile from the mean
+    bins = np.linspace(min_dist, max_dist, bin_number)
+    print(max_dist)
+
+    
     corr, dcorr= bootstrap_two_point(data, bins, 
                                             data_R = background,Nbootstrap=5,
                                             sub_sample_fraction =0.5,
@@ -268,8 +276,10 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
         plt.savefig(fig_name+".png")
         return StructureScore, NormScore
 
+    elif return_corr:
+        return corr,dcorr,StructureScore,NormScore
     else:
-        return Structurescore,NormScore
+        StructureScore,NormScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
