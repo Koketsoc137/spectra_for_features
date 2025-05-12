@@ -254,7 +254,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     
     corr, dcorr= bootstrap_two_point(data, bins, 
                                             data_R = background,Nbootstrap=Nbootstrap,
-                                            sub_sample_fraction =0.5,
+                                            sub_sample_fraction =1/Nbootstrap,
                                             method = 'standard',  
                                             return_bootstraps =False)
 
@@ -279,7 +279,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     elif return_corr:
         return corr,dcorr,StructureScore,NormScore
     else:
-        StructureScore,NormScore
+        return StructureScore,NormScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
