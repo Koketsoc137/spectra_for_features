@@ -210,7 +210,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     
         for i in range(Nbootstrap):
             indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
-            bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
+            bootstraps[i],_ = two_point(data, bins, method=method,
                                       random_state=rng,data_R = data_R[indices, :])
 
     else:
@@ -243,17 +243,17 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     length, dimension = data.shape
 
     # Sample covariance matrices
+    Nbootstrap = 5
   
-    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data))
-
+    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,Nbootstrap*len(data))
+    
 
     max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 99)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
-    print(max_dist)
 
     
     corr, dcorr= bootstrap_two_point(data, bins, 
-                                            data_R = background,Nbootstrap=5,
+                                            data_R = background,Nbootstrap=Nbootstrap,
                                             sub_sample_fraction =0.5,
                                             method = 'standard',  
                                             return_bootstraps =False)
