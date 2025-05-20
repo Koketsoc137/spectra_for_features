@@ -3,16 +3,28 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
-import spectra_for_features.backbone.Distributions as dist
+import backbone.Distributions as dist
 import skdim
 
 random.seed(42)
 
-def norm(observed, expected = None):
+def norm(observed, errors = None):
     
     norm = np.nansum([observed**2])
 
-    return norm/np.count_nonzero(~np.isnan(observed))
+    #removel all invalid entries
+
+    valid = (~np.isnan(observed))&(~np.isnan(errors))
+    
+    observed = observed[valid]
+    errors = errors[valid]
+
+    norm = np.nansum([observed**2])
+
+    #
+    norm_error = np.sum([2*o*e for o,e in zip(observed,errors)])
+
+    return norm/np.count_nonzero(~np.isnan(observed)), norm/np.count_nonzero(~np.isnan(norm_error))
 
 def reduced_chi_square(observed, errors, expected = None):
     #Mask all the invalid bins
