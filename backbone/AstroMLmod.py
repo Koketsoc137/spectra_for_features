@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
-import backbone.Distributions as dist
+import spectra_for_features.backbone.Distributions as dist
 import skdim
 
 random.seed(42)
@@ -248,7 +248,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     background = dist.generate_gaussian_points(Eff_mean, Eff_cov,Nbootstrap*len(data))
     
 
-    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 99)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 95)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
 
     
@@ -294,6 +294,7 @@ def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = Fal
             if verbose:
                 print("ID :",ID)
         return np.mean(IDs, axis = 0),np.std(IDs,axis = 0, ddof=1)
+
 
 
 
