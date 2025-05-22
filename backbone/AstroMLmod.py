@@ -19,12 +19,14 @@ def norm(observed, errors = None):
     observed = observed[valid]
     errors = errors[valid]
 
+    number_of_bins  = np.count_nonzero(~np.isnan(observed))
+
     norm = np.nansum([observed**2])
 
     #
     norm_error = np.sum([2*o*e for o,e in zip(observed,errors)])
 
-    return norm/np.count_nonzero(~np.isnan(observed)), norm/np.count_nonzero(~np.isnan(norm_error))
+    return (norm/number_of_bins, norm/number_of_bins)
 
 def reduced_chi_square(observed, errors, expected = None):
     #Mask all the invalid bins
