@@ -105,9 +105,11 @@ def two_point(data, bins, method='standard',
         the estimate of the correlation function within each bin
         shape = Nbins
     """
+    
     data = np.asarray(data)
     bins = np.asarray(bins)
     rng = check_random_state(random_state)
+    print(rng)
 
     if method not in ['standard', 'landy-szalay']:
         raise ValueError("method must be 'standard' or 'landy-szalay'")
@@ -143,10 +145,11 @@ def two_point(data, bins, method='standard',
 
     DD = np.diff(counts_DD)
     RR = np.diff(counts_RR)
-
+    
     # check for zero in the denominator
     RR_zero = (RR == 0)
     RR[RR_zero] = 1
+    print(RR)
 
     if method == 'standard':
         corr = factor ** 2 * DD / RR - 1
@@ -225,7 +228,9 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
         for i in range(Nbootstrap):
             indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
             bootstraps[i],_ = two_point(data, bins, method=method,
-                                      random_state=rng,data_R = data_R[indices, :])
+                                      random_state=i,data_R = data_R[indices, :])
+            plt.plot(bootstraps[i])
+            plt.show()
 
     else:
     
@@ -239,6 +244,9 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     # use masked std dev in case of NaNs
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+    print(corr_err)
+    plt.plot(corr_err)
+    plt.show()
 
     if return_bootstraps:
         return bootstraps
@@ -262,7 +270,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     background = dist.generate_gaussian_points(Eff_mean, Eff_cov,Nbootstrap*len(data))
     
 
-    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 95)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 50)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
 
     
