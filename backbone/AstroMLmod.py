@@ -5,6 +5,7 @@ from sklearn.utils import check_random_state
 import random
 import backbone.Distributions as dist
 import skdim
+import backbone.VISUAL as viz
 
 random.seed(42)
 
@@ -169,7 +170,8 @@ def two_point(data, bins, method='standard',
 
 def bootstrap_two_point(data, bins, Nbootstrap=10,
                         method='standard', return_bootstraps=False,
-                        random_state=None,data_R = None,sub_sample_fraction = 0.1):
+                        random_state=None,data_R = None,sub_sample_fraction = 0.1,
+                       flatten_reps = True,representations =None):
     """Bootstrapped two-point correlation function
 
     Parameters
@@ -222,11 +224,24 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
 
     if data_R is not None:
+        #If the rerpesentations are to be flattened using UMAP
+        if flatten_reps:
+            for i in range(Nbootstrap):
+                
+                data = viz.umap(representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.6, n_neighbors = 50,alpha = 0.2)
+                data = data/max(np.max(data),abs(np.min(data)))
+
+                indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
+                bootstraps[i],_ = two_point(data, bins, method=method,
+                                          random_state=i,data_R = data_R[indices, :])
+            
+
+        else:
     
-        for i in range(Nbootstrap):
-            indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
-            bootstraps[i],_ = two_point(data, bins, method=method,
-                                      random_state=i,data_R = data_R[indices, :])
+            for i in range(Nbootstrap):
+                indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
+                bootstraps[i],_ = two_point(data, bins, method=method,
+                                          random_state=i,data_R = data_R[indices, :])
 
 
     else:
@@ -250,7 +265,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
 
 def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
-                    bin_number = 100,plot = True, label = "correlation on features",fig_name ="tpcor",return_corr = False):
+                    bin_number = 100,plot = True, label = "correlation on features",fig_name ="tpcor",return_corr = False, representations = []):
 
     data = data/max(np.max(data),abs(np.min(data)))
 
@@ -265,15 +280,19 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     background = dist.generate_gaussian_points(Eff_mean, Eff_cov,Nbootstrap*len(data))
     
 
-    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 50)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(background-Eff_mean, axis=1), 68)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
 
     
     corr, dcorr= bootstrap_two_point(data, bins, 
-                                            data_R = background,Nbootstrap=Nbootstrap,
-                                            sub_sample_fraction =1/Nbootstrap,
-                                            method = 'standard',  
-                                            return_bootstraps =False)
+                                    data_R = background,Nbootstrap=Nbootstrap,
+                                    sub_sample_fraction =1/Nbootstrap,
+                                    method = 'standard',  
+                                    return_bootstraps =False,
+                                    flatten_reps = True,
+                                    representations = representations
+                                    
+                                    )
 
     
     StructureScore = reduced_chi_square(corr, dcorr, expected = None)
@@ -291,6 +310,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
         plt.fill_between(bins[1:],corr-dcorr, corr+dcorr, color = "blue",alpha = .3)
         plt.title(label)
         plt.savefig(fig_name+".png")
+        plt.show()
         return StructureScore, NormScore
 
     elif return_corr:
