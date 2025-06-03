@@ -109,7 +109,6 @@ def two_point(data, bins, method='standard',
     data = np.asarray(data)
     bins = np.asarray(bins)
     rng = check_random_state(random_state)
-    print(rng)
 
     if method not in ['standard', 'landy-szalay']:
         raise ValueError("method must be 'standard' or 'landy-szalay'")
@@ -149,7 +148,6 @@ def two_point(data, bins, method='standard',
     # check for zero in the denominator
     RR_zero = (RR == 0)
     RR[RR_zero] = 1
-    print(RR)
 
     if method == 'standard':
         corr = factor ** 2 * DD / RR - 1
@@ -229,8 +227,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
             indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
             bootstraps[i],_ = two_point(data, bins, method=method,
                                       random_state=i,data_R = data_R[indices, :])
-            plt.plot(bootstraps[i])
-            plt.show()
+
 
     else:
     
@@ -244,9 +241,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     # use masked std dev in case of NaNs
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
-    print(corr_err)
-    plt.plot(corr_err)
-    plt.show()
+
 
     if return_bootstraps:
         return bootstraps
