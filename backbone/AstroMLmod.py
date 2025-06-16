@@ -53,7 +53,12 @@ def weighted_integral(correlations, bins, bootstrap_input = False):
             for_poisson = (np.pi*bins[-1]**2)
             
                     
-            weighted_int = np.sum([2*np.pi*(1+obs)*r*dr for obs,r in zip(observed,bins)])/for_poisson
+            weighted_int = np.sum([2*np.pi*(1+obs)*r*dr for obs,r in zip(observed,bins)])
+            print("Unnormalized", weighted_int)
+            weighted_int = weighted_int - for_poisson
+
+            print("For poisson", weighted_int)
+            
             integrals.append(weighted_int)
 
             
@@ -352,7 +357,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
-    print(len(bins))
+    print(bins[-1])
     NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
     #NormScore = norm(corr,dcorr)
 
