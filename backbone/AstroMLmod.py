@@ -6,8 +6,9 @@ import random
 import backbone.Distributions as dist
 import skdim
 import backbone.VISUAL as viz
+import math
 
-random.seed(42)
+random.seed(random.randint(0,10000))
 
 def norm(observed, errors = None):
     
@@ -32,13 +33,11 @@ def norm(observed, errors = None):
 def reduced_chi_square(observed, errors, expected = None):
     #Mask all the invalid bins
     
-    print(sum(errors ==0))
     valid = (~np.isnan(observed))&(~np.isnan(errors)) & (errors != 0)
     observed = observed[valid]
     errors = errors[valid]
     
     chi_square = np.sum([o**2/error**2 for o,error in zip(observed,errors)])
-    print(len(observed))
     return chi_square/len(observed)
 
 
@@ -82,7 +81,7 @@ def scale_and_sample(pca_features, sub_sample_size = 8000, n_output_features = 2
     return smaller
 
 
-def two_point(data, bins, method='standard',
+def two_point(data, bins, method='standard', errors = "poisson",
               data_R=None, random_state=42, metric = "euclidean"):
     """Two-point correlation function
 
@@ -145,7 +144,7 @@ def two_point(data, bins, method='standard',
 
     DD = np.diff(counts_DD)
     RR = np.diff(counts_RR)
-    
+
     # check for zero in the denominator
     RR_zero = (RR == 0)
     RR[RR_zero] = 1
@@ -161,10 +160,19 @@ def two_point(data, bins, method='standard',
 
     #
     corr[RR_zero] = np.nan
-    #dist.scatter_points(data_R,alpha = 0.1,title =  "Gaussian space sparse")  
+    #dist.scatter_points(data_R,alpha = 0.1,title =  "Gaussian space sparse")
+    if errors == "poisson":
+        DD_zero = (DD == 0) 
+        DD[DD_zero] = 1
+        
+        dcorr = np.asarray([(1+cor)/math.sqrt(d) for cor,d in zip(corr,DD)])
+        plt.plot(dcorr)
+        plt.show()
+        return corr, dcorr
+        
 
-
-    return corr, data_R
+    else:
+        return corr, data_R
 
 
 
@@ -267,6 +275,9 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
                     bin_number = 100,plot = True, label = "correlation on features",fig_name ="tpcor",return_corr = False, representations = []):
 
+
+    #Scale down the sample
+
     data = data/max(np.max(data),abs(np.min(data)))
 
     Eff_mean = np.mean(data, axis = 0)
@@ -277,22 +288,28 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     # Sample covariance matrices
     Nbootstrap = 5
   
-    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,Nbootstrap*len(data))
-    
+    #background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
+    background = dist.generate_random_points_2d(len(data),seed = 42)
+    #dist.scatter_points(background)
 
-    max_dist = np.percentile(np.linalg.norm(background-Eff_mean, axis=1), 68)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 95)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
 
-    
+    corr, dcorr = two_point(data, bins, method='standard', errors = "poisson",
+              data_R=background, random_state=42, metric = "euclidean")
+
+    """
     corr, dcorr= bootstrap_two_point(data, bins, 
                                     data_R = background,Nbootstrap=Nbootstrap,
                                     sub_sample_fraction =1/Nbootstrap,
                                     method = 'standard',  
                                     return_bootstraps =False,
-                                    flatten_reps = True,
+                                    flatten_reps = False,
                                     representations = representations
                                     
                                     )
+    """
+    
 
     
     StructureScore = reduced_chi_square(corr, dcorr, expected = None)
