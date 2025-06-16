@@ -30,6 +30,40 @@ def norm(observed, errors = None):
 
     return (norm/number_of_bins, norm_error/number_of_bins)
 
+def weighted_integral(correlations, bins, bootstrap_input = False):
+    
+
+    #removel all invalid entries
+    # K(r)  =  integral of 4*pi*r^2 *(1+ e(r)
+    bins = bins[1:]
+
+    integrals = []
+
+    if bootstrap_input:
+        for observed in correlations:
+
+            valid = (~np.isnan(observed))&(~np.isnan(bins))
+            
+            observed = observed[valid]
+            bins =  bins[valid]
+            dr = bins[1]-bins[0]
+
+            #For a poisson distribution in 2d
+
+            for_poisson = (np.pi*bins[-1]**2)
+            
+                    
+            weighted_int = np.sum([2*np.pi*(1+obs)*r*dr for obs,r in zip(observed,bins)])/for_poisson
+            integrals.append(weighted_int)
+
+            
+        mean_int = np.ma.masked_invalid(integrals).mean(0)
+        std_int = np.asarray(np.ma.masked_invalid(integrals).std(0, ddof=1))
+
+
+
+        return mean_int,std_int
+
 def reduced_chi_square(observed, errors, expected = None):
     #Mask all the invalid bins
     
@@ -166,8 +200,7 @@ def two_point(data, bins, method='standard', errors = "poisson",
         DD[DD_zero] = 1
         
         dcorr = np.asarray([(1+cor)/math.sqrt(d) for cor,d in zip(corr,DD)])
-        plt.plot(dcorr)
-        plt.show()
+
         return corr, dcorr
         
 
@@ -230,6 +263,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     
 
     bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
+    #bootbins = np.zeros((Nbootstrap, len(bins[1:])))
 
     if data_R is not None:
         #If the rerpesentations are to be flattened using UMAP
@@ -248,8 +282,8 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
     
             for i in range(Nbootstrap):
                 indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
-                bootstraps[i],_ = two_point(data, bins, method=method,
-                                          random_state=i,data_R = data_R[indices, :])
+                bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
+                                          random_state=i,data_R = data_R)
 
 
     else:
@@ -261,14 +295,16 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
             
             
   
-    # use masked std dev in case of NaNs
-    corr = np.ma.masked_invalid(bootstraps).mean(0)
-    corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+
 
 
     if return_bootstraps:
         return bootstraps
     else:
+        # use masked std dev in case of NaNs
+        corr = np.ma.masked_invalid(bootstraps).mean(0)
+        corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+        
         return corr, corr_err
 
 
@@ -289,31 +325,41 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     Nbootstrap = 5
   
     #background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
-    background = dist.generate_random_points_2d(len(data),seed = 42)
+    background = dist.generate_random_points_2d(Nbootstrap*len(data),seed = 42)
     #dist.scatter_points(background)
 
     max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 95)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
+    print(len(bins))
 
-    corr, dcorr = two_point(data, bins, method='standard', errors = "poisson",
-              data_R=background, random_state=42, metric = "euclidean")
+    #corr, dcorr = two_point(data, bins, method='standard', errors = "poisson",
+    #          data_R=background, random_state=42, metric = "euclidean")
 
-    """
-    corr, dcorr= bootstrap_two_point(data, bins, 
+    
+    bootstraps= bootstrap_two_point(data, bins, 
                                     data_R = background,Nbootstrap=Nbootstrap,
-                                    sub_sample_fraction =1/Nbootstrap,
+                                    sub_sample_fraction =0.5,
                                     method = 'standard',  
-                                    return_bootstraps =False,
+                                    return_bootstraps =True,
                                     flatten_reps = False,
-                                    representations = representations
+                                    representations = None,
+                                    
                                     
                                     )
-    """
+
     
 
     
-    StructureScore = reduced_chi_square(corr, dcorr, expected = None)
-    NormScore = norm(corr,dcorr)
+    #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
+    StructureScore  = 1
+    print(len(bins))
+    NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
+    #NormScore = norm(corr,dcorr)
+
+    corr = np.ma.masked_invalid(bootstraps).mean(0)
+    dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+        
+    
     print("Chi-Square score: ",StructureScore)
     print("L2 Norm score: ",NormScore)
 
