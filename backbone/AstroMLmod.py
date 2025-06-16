@@ -30,7 +30,7 @@ def norm(observed, errors = None):
 
     return (norm/number_of_bins, norm_error/number_of_bins)
 
-def weighted_integral(correlations, bins, bootstrap_input = False):
+def weighted_integral(correlations, bins, sigma = None, bootstrap_input = False):
     
 
     #removel all invalid entries
@@ -48,16 +48,10 @@ def weighted_integral(correlations, bins, bootstrap_input = False):
             bins =  bins[valid]
             dr = bins[1]-bins[0]
 
-            #For a poisson distribution in 2d
-
-            for_poisson = (np.pi*bins[-1]**2)
-            
+            #Weighting doesnt work
                     
             weighted_int = np.sum([2*np.pi*(1+obs)*r*dr for obs,r in zip(observed,bins)])
-            print("Unnormalized", weighted_int)
-            weighted_int = weighted_int - for_poisson
-
-            print("For poisson", weighted_int)
+            
             
             integrals.append(weighted_int)
 
@@ -331,9 +325,9 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
   
     #background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
     background = dist.generate_random_points_2d(Nbootstrap*len(data),seed = 42)
-    #dist.scatter_points(background)
-
-    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 95)*2 #probe to the 99th percentile from the mean
+    dist.scatter_points(data)
+    
+    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 68)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
     print(len(bins))
 
