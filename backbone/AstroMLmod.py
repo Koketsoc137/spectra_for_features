@@ -329,7 +329,6 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     
     max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 68)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
-    print(len(bins))
 
     #corr, dcorr = two_point(data, bins, method='standard', errors = "poisson",
     #          data_R=background, random_state=42, metric = "euclidean")
