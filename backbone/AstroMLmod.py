@@ -62,6 +62,17 @@ def weighted_integral(correlations, bins, sigma = None, bootstrap_input = False)
 
 
         return mean_int,std_int
+    else:
+        valid = (~np.isnan(correlations))&(~np.isnan(bins))
+        correlations = correlations[valid]
+        bins =  bins[valid]
+        dr = bins[1]-bins[0]
+
+                    
+        weighted_int = np.sum([2*np.pi*(1+obs)*r*dr for obs,r in zip(correlations,bins)])
+
+        return weighted_int,0
+        
 
 def reduced_chi_square(observed, errors, expected = None):
     #Mask all the invalid bins
@@ -206,6 +217,93 @@ def two_point(data, bins, method='standard', errors = "poisson",
     else:
         return corr, data_R
 
+def UMAP_twopoint(High_dimenensional_data, Nbootstrap=10,
+                        method='standard', return_bootstraps=False,
+                        random_state=None,data_R = None,sub_sample_fraction = 0.1,
+                      ):
+    """Bootstrapped two-point correlation function
+
+    Parameters
+    ----------
+    data : array_like
+        input data, shape = [n_samples, n_features]
+    bins : array_like
+        bins within which to compute the 2-point correlation.
+        shape = Nbins + 1
+    Nbootstrap : integer
+        number of bootstrap resamples to perform (default = 10)
+    method : string
+        "standard" or "landy-szalay".
+    return_bootstraps: bool
+        if True, return full bootstrapped samples
+    random_state : integer, np.random.RandomState, or None
+        specify the random state to use for generating background
+
+    Returns
+    -------
+    corr, corr_err : ndarrays
+        the estimate of the correlation function and the bootstrap
+        error within each bin. shape = Nbins
+    """
+    high_dimensional_data = np.asarray(high_dimensional_data)
+    bins = np.asarray(bins)
+    rng = check_random_state(random_state)
+
+    """
+
+    if method not in ['standard', 'landy-szalay']:
+        raise ValueError("method must be 'standard' or 'landy-szalay'")
+
+    if bins.ndim != 1:
+        raise ValueError("bins must be a 1D array")
+
+    if data.ndim == 1:
+        data = data[:, np.newaxis]
+    elif data.ndim != 2:
+        raise ValueError("data should be 1D or 2D")
+
+    """
+
+
+    n_samples, n_features = data.shape
+
+
+
+    bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
+    #bootbins = np.zeros((Nbootstrap, len(bins[1:])))
+
+    for i in range(Nbootstrap):
+
+                
+                
+        data = viz.umap(representations,scatter = False,name = "UMAP", dim = 2, min_dist = 0.6, n_neighbors = 50,alpha = 0.2)
+        data = data/max(np.max(data),abs(np.min(data)))
+
+        indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
+        data, bins = flatten_and_bin(high_dimensional_data)
+        
+        bootstraps[i],_ = two_point(data, bins, method=method,
+                                          random_state=i,data_R = data_R[indices, :])
+  
+
+
+
+    if return_bootstraps:
+        return bootstraps
+    else:
+        # use masked std dev in case of NaNs
+        corr = np.ma.masked_invalid(bootstraps).mean(0)
+        corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+        
+        return corr, corr_err
+
+def flatten_and_bin(high_demensional_data, Nbins):
+
+    data = viz.umap(high_dimensional_data,scatter = False,name = "UMAP", dim = 2, min_dist = 0.6, n_neighbors = 50,alpha = 0.2)
+    data = data/max(np.max(data),abs(np.min(data)))
+
+    
+
 
 
 def bootstrap_two_point(data, bins, Nbootstrap=10,
@@ -268,8 +366,10 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
         #If the rerpesentations are to be flattened using UMAP
         if flatten_reps:
             for i in range(Nbootstrap):
+
                 
-                data = viz.umap(representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.6, n_neighbors = 50,alpha = 0.2)
+                
+                data = viz.umap(representations,scatter = False,name = "UMAP", dim = 2, min_dist = 0.6, n_neighbors = 50,alpha = 0.2)
                 data = data/max(np.max(data),abs(np.min(data)))
 
                 indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
@@ -312,6 +412,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
 
 
     #Scale down the sample
+    bin_number = 50
 
     data = data/max(np.max(data),abs(np.min(data)))
 
@@ -325,24 +426,23 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
   
     #background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
     background = dist.generate_random_points_2d(Nbootstrap*len(data),seed = 42)
-    dist.scatter_points(data)
     
-    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 68)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data-Eff_mean, axis=1), 99)*2 #probe to the 99th percentile from the mean
     bins = np.linspace(min_dist, max_dist, bin_number)
+    """
 
-    #corr, dcorr = two_point(data, bins, method='standard', errors = "poisson",
-    #          data_R=background, random_state=42, metric = "euclidean")
+    corr, dcorr = two_point(data, bins, method='standard', errors = "poisson",
+              data_R=background, random_state=42, metric = "euclidean")
+    NormScore = weighted_integral(corr,bins, bootstrap_input = False)
+    """
 
-    
     bootstraps= bootstrap_two_point(data, bins, 
                                     data_R = background,Nbootstrap=Nbootstrap,
                                     sub_sample_fraction =0.5,
                                     method = 'standard',  
                                     return_bootstraps =True,
                                     flatten_reps = False,
-                                    representations = None,
-                                    
-                                    
+                                    representations = representations,
                                     )
 
     
@@ -350,7 +450,8 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
-    print(bins[-1])
+
+    
     NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
     #NormScore = norm(corr,dcorr)
 
