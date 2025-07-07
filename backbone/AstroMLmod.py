@@ -438,7 +438,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     Nbootstrap = 5
   
     #background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
-    background = dist.generate_random_points_2d(2*len(data),s_l =2 ,seed = 42)
+    background = dist.generate_random_points_2d(5*len(data),s_l =2 ,seed = 42)
     
     
     #max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2 #probe to the 99th percentile from the mean
@@ -450,8 +450,8 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
               data_R=background, random_state=42, metric = "euclidean")
     NormScore = weighted_integral(corr,bins, bootstrap_input = False)
     """
-    dist.scatter_points(data, alpha = 0.5)
-    plt.show()
+    #dist.scatter_points(data, alpha = 0.5)
+    #plt.show()
 
     bootstraps= bootstrap_two_point(data, bins, 
                                     data_R = background,Nbootstrap=Nbootstrap,
