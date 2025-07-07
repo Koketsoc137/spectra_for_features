@@ -73,7 +73,7 @@ def generate_points_on_disk(radius, n_points, center = [0,0]):
     return points
 
 
-def generate_random_points_2d(n_points,seed = 42):
+def generate_random_points_2d(n_points,s_l = 1,seed = 42):
     """
     Generate random points in 2D space.
 
@@ -84,7 +84,7 @@ def generate_random_points_2d(n_points,seed = 42):
     Returns:
         points (np.ndarray): 2D array of points (n_points, 2).
     """
-    points = np.random.uniform(-1, 1, size=(n_points, 2))
+    points = np.random.uniform(-s_l, s_l, size=(n_points, 2))
     
     return points
 
