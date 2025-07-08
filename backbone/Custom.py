@@ -302,9 +302,8 @@ def plot_weights(model, layer_num, single_channel = True, collated = False):
   else:
     print("Can only visualize layers which are convolutional")
     
-    
-def train_val_dataset(dataset, val_split=0.30):
-    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, random_state = 42)
+def train_val_dataset(dataset, val_split=0.30,train_size = None):
+    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split,train_size = train_size, random_state = 42)
     datasets = {}
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
