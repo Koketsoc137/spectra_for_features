@@ -26,6 +26,14 @@ def reduced_nonchi_square(observed, errors, expected = None):
 
 
 
+def symmetric_covariance(cov_diag = 2.5,dimension = 2, number = 2):
+
+    
+    return [[[cov_diag if i == j else 0 for j in range(dimension)] for i in range(dimension)] for i in range(number)]
+
+    
+
+
 def first_order_structure(bootstraps):
 
     Nbootstrap = len(bootstraps)
