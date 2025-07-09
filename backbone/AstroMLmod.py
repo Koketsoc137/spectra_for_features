@@ -10,11 +10,12 @@ import math
 
 random.seed(random.randint(0,10000))
 
-def norm(observed, errors = None):
+def norm(observed, errors = None, bins =[]):
     
     norm = np.nansum([observed**2])
 
     #removel all invalid entries
+    dr = bins[2]-bins[1]
 
     valid = (~np.isnan(observed))&(~np.isnan(errors))
     
@@ -23,12 +24,12 @@ def norm(observed, errors = None):
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
-    norm = np.nansum([observed**2])
+    norm = np.nansum([dr*(1+observed)**2])
 
     #
-    norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])
+    norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
 
-    return (norm/number_of_bins, norm_error/number_of_bins)
+    return (norm, norm_error)
 
 def weighted_integral(correlations, bins, sigma = None, bootstrap_input = False):
     
@@ -414,7 +415,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
 
 
     #Center, scale down the sample
-    bin_number = 50
+    bin_number = 100
 
     
 
@@ -431,18 +432,21 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     Eff_mean  = Eff_mean - Eff_mean
     Eff_cov = np.cov(data,rowvar = False)
     #print(Eff_cov)
+    
 
     length, dimension = data.shape
 
     # Sample covariance matrices
     Nbootstrap = 5
+    #Percentile of the scaled data
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2
   
-    #background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
-    background = dist.generate_random_points_2d(5*len(data),s_l =2 ,seed = 42)
+    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
+    #background = dist.generate_random_points_2d(len(data),s_l =2 ,seed = 42)
     
     
-    #max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2 #probe to the 99th percentile from the mean
-    max_dist = 1.5
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2 #probe to the 99th percentile from the mean
+    #smax_dist = 1.5
     bins = np.linspace(min_dist, max_dist, bin_number)
     """
 
@@ -467,13 +471,15 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
-
+    print(len(bins))
     
-    NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
-    #NormScore = norm(corr,dcorr)
+    #NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
 
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+    NormScore = norm(corr,dcorr,bins)
+    StructureScore = reduced_chi_square(corr, dcorr, expected = None)
+
         
     
     print("Chi-Square score: ",StructureScore)
