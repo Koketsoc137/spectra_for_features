@@ -525,11 +525,7 @@ def similarity_searchb(input_index = int,data = list,number_of_neighbors = 10,re
     return neighbors                
 
 
-def pca(data = list,n_components = 500,
-        variance = 0.95,
-        verbose = 1,
-        return_all = False,
-       return_n_components = -1):
+def pca(data = list,n_components = 500, variance = 0.97,return_all = False,verbose = True, return_variance_dimension = False):
 
     pca = IncrementalPCA(n_components =n_components)
     pca.fit(data)
@@ -538,23 +534,21 @@ def pca(data = list,n_components = 500,
 
     prefered_variance = 0;
 
-    if return_n_components != -1:
-        return components[:,0:return_n_components]
-
     #Here I decide the number of components to keep, using the variance
 
     i = 0
     while prefered_variance < variance and i <n_components:
         prefered_variance += var[i]
         i +=1
-        
-    if verbose == 1:
+    if verbose:
         print("Variance to keep : ",prefered_variance," number of components : ",i )
+    if return_variance_dimension:
+        return prefered_variance,i
     if return_all:
         return components
-    
     else:
         return components[:,0:i]
+
 
 
 

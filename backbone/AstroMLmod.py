@@ -3,10 +3,16 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
-import backbone.Distributions as dist
-import skdim
-import backbone.VISUAL as viz
+try:
+    import backbone.Distributions as dist
+    import backbone.VISUAL as viz
+except:
+    import spectra_for_features.backbone.Distributions as dist
+    import spectra_for_features.backbone.VISUAL as viz
+    
 import math
+import skdim
+
 
 random.seed(random.randint(0,10000))
 
@@ -24,7 +30,7 @@ def norm(observed, errors = None, bins =[]):
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
-    norm = np.nansum([dr*(1+observed)**2])
+    norm = np.nansum([dr*(observed)**2])
 
     #
     norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
@@ -426,6 +432,7 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
 
     #Scale
     max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
+    print(max_dist)
 
     data = data/max_dist
     #data = data/max(np.max(data),abs(np.min(data)))
@@ -439,13 +446,13 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     # Sample covariance matrices
     Nbootstrap = 5
     #Percentile of the scaled data
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
   
     background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
     #background = dist.generate_random_points_2d(len(data),s_l =2 ,seed = 42)
     
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2 #probe to the 99th percentile from the mean
     #smax_dist = 1.5
     bins = np.linspace(min_dist, max_dist, bin_number)
     """
@@ -472,13 +479,14 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
     print(len(bins))
+    print(bootstraps)
     
     #NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
 
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
     NormScore = norm(corr,dcorr,bins)
-    StructureScore = reduced_chi_square(corr, dcorr, expected = None)
+    #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
 
         
     
