@@ -478,8 +478,6 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
-    print(len(bins))
-    print(bootstraps)
     
     #NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
 
