@@ -417,7 +417,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
 
 def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
-                    bin_number = 100,plot = True, label = "correlation on features",fig_name ="tpcor",return_corr = False, representations = []):
+                    bin_number = 100,plot = False, label = "correlation on features",fig_name ="tpcor",return_corr = False, representations = []):
 
 
     #Center, scale down the sample
@@ -431,8 +431,10 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     data = data - Eff_mean
 
     #Scale
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
+    distances = np.linalg.norm(data, axis=1)
+    max_dist = np.percentile(distances, 95)*2
     print(max_dist)
+    print(np.percentile(distances, 99)*2)
 
     data = data/max_dist
     #data = data/max(np.max(data),abs(np.min(data)))
@@ -448,11 +450,11 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     #Percentile of the scaled data
     max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
   
-    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
-    #background = dist.generate_random_points_2d(len(data),s_l =2 ,seed = 42)
+    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,10*len(data), seed = random.randint(0,10000))
+    #background = dist.generate_random_points_2d(10*len(data),s_l =2 ,seed = 42)
     
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 68)*2 #probe to the 99th percentile from the mean
     #smax_dist = 1.5
     bins = np.linspace(min_dist, max_dist, bin_number)
     """
