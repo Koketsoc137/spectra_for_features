@@ -12,6 +12,7 @@ except:
     
 import math
 import skdim
+import time
 
 
 random.seed(random.randint(0,10000))
@@ -135,7 +136,7 @@ def scale_and_sample(pca_features, sub_sample_size = 8000, n_output_features = 2
 
 
 def two_point(data, bins, method='standard', errors = "poisson",
-              data_R=None, random_state=42, metric = "euclidean"):
+              counts_RR = None, random_state=42, metric = "euclidean"):
     """Two-point correlation function
 
     Parameters
@@ -177,6 +178,7 @@ def two_point(data, bins, method='standard', errors = "poisson",
     n_samples, n_features = data.shape
 
     # shuffle all but one axis to get background distribution
+    """
     if data_R is None:
         data_R = data.copy()
         for i in range(n_features - 1):
@@ -185,15 +187,20 @@ def two_point(data, bins, method='standard', errors = "poisson",
         data_R = np.asarray(data_R)
         if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
             raise ValueError('data_R must have same n_features as data')
+    """
 
-    factor = len(data_R) * 1. / len(data)
+    factor = 10*len(data) * 1. / len(data)
 
     # Fast two-point correlation functions added in scikit-learn v. 0.14
     KDT_D = KDTree(data,metric = metric)
-    KDT_R = KDTree(data_R, metric = metric)
+    if counts_RR is None:
+        KDT_R = KDTree(data_R, metric = metric)
+        counts_RR = KDT_R.two_point_correlation(data_R, bins)
+    else:
+        Data_R = 1 
 
     counts_DD = KDT_D.two_point_correlation(data, bins)
-    counts_RR = KDT_R.two_point_correlation(data_R, bins)
+    #
 
     DD = np.diff(counts_DD)
     RR = np.diff(counts_RR)
@@ -361,10 +368,13 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
     n_samples, n_features = data.shape
 
+    KDT_R = KDTree(data_R, metric = "euclidean")
+    counts_RR = KDT_R.two_point_correlation(data_R, bins)
+
 
     if Nbootstrap ==0:
         # get the baseline estimate
-        corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
+        corr, data_R = two_point(data, bins, method=method, random_state=rng,counts_RR= counts_RR)
         return corr, data_R
     
 
@@ -389,9 +399,11 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
         else:
     
             for i in range(Nbootstrap):
+                stamp_1 = time.time()
                 indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
                 bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
-                                          random_state=i,data_R = data_R)
+                                          random_state=i,counts_RR = counts_RR)
+                print(stamp_1-time.time())
 
 
     else:
