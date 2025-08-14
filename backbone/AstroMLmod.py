@@ -3,10 +3,17 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
-import backbone.Distributions as dist
-import skdim
-import backbone.VISUAL as viz
+try:
+    import backbone.Distributions as dist
+    import backbone.VISUAL as viz
+except:
+    import spectra_for_features.backbone.Distributions as dist
+    import spectra_for_features.backbone.VISUAL as viz
+    
 import math
+import skdim
+import time
+
 
 random.seed(random.randint(0,10000))
 
@@ -24,7 +31,7 @@ def norm(observed, errors = None, bins =[]):
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
-    norm = np.nansum([dr*(1+observed)**2])
+    norm = np.nansum([dr*(observed)**2])
 
     #
     norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
@@ -129,7 +136,7 @@ def scale_and_sample(pca_features, sub_sample_size = 8000, n_output_features = 2
 
 
 def two_point(data, bins, method='standard', errors = "poisson",
-              data_R=None, random_state=42, metric = "euclidean"):
+              counts_RR = None, random_state=42, metric = "euclidean"):
     """Two-point correlation function
 
     Parameters
@@ -171,6 +178,7 @@ def two_point(data, bins, method='standard', errors = "poisson",
     n_samples, n_features = data.shape
 
     # shuffle all but one axis to get background distribution
+    """
     if data_R is None:
         data_R = data.copy()
         for i in range(n_features - 1):
@@ -179,15 +187,20 @@ def two_point(data, bins, method='standard', errors = "poisson",
         data_R = np.asarray(data_R)
         if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
             raise ValueError('data_R must have same n_features as data')
+    """
 
-    factor = len(data_R) * 1. / len(data)
+    factor = 10*len(data) * 1. / len(data)
 
     # Fast two-point correlation functions added in scikit-learn v. 0.14
     KDT_D = KDTree(data,metric = metric)
-    KDT_R = KDTree(data_R, metric = metric)
+    if counts_RR is None:
+        KDT_R = KDTree(data_R, metric = metric)
+        counts_RR = KDT_R.two_point_correlation(data_R, bins)
+    else:
+        Data_R = 1 
 
     counts_DD = KDT_D.two_point_correlation(data, bins)
-    counts_RR = KDT_R.two_point_correlation(data_R, bins)
+    #
 
     DD = np.diff(counts_DD)
     RR = np.diff(counts_RR)
@@ -355,10 +368,13 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
     n_samples, n_features = data.shape
 
+    KDT_R = KDTree(data_R, metric = "euclidean")
+    counts_RR = KDT_R.two_point_correlation(data_R, bins)
+
 
     if Nbootstrap ==0:
         # get the baseline estimate
-        corr, data_R = two_point(data, bins, method=method, random_state=rng,data_R = data_R)
+        corr, data_R = two_point(data, bins, method=method, random_state=rng,counts_RR= counts_RR)
         return corr, data_R
     
 
@@ -383,9 +399,11 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
         else:
     
             for i in range(Nbootstrap):
+                stamp_1 = time.time()
                 indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
                 bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
-                                          random_state=i,data_R = data_R)
+                                          random_state=i,counts_RR = counts_RR)
+                print(stamp_1-time.time())
 
 
     else:
@@ -411,7 +429,7 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
 
 def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
-                    bin_number = 100,plot = True, label = "correlation on features",fig_name ="tpcor",return_corr = False, representations = []):
+                    bin_number = 100,plot = False, label = "correlation on features",fig_name ="tpcor",return_corr = False, representations = []):
 
 
     #Center, scale down the sample
@@ -425,7 +443,10 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     data = data - Eff_mean
 
     #Scale
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
+    distances = np.linalg.norm(data, axis=1)
+    max_dist = np.percentile(distances, 95)*2
+    print(max_dist)
+    print(np.percentile(distances, 99)*2)
 
     data = data/max_dist
     #data = data/max(np.max(data),abs(np.min(data)))
@@ -439,13 +460,13 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     # Sample covariance matrices
     Nbootstrap = 5
     #Percentile of the scaled data
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
   
-    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,len(data), seed = random.randint(0,10000))
-    #background = dist.generate_random_points_2d(len(data),s_l =2 ,seed = 42)
+    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,10*len(data), seed = random.randint(0,10000))
+    #background = dist.generate_random_points_2d(10*len(data),s_l =2 ,seed = 42)
     
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 68)*2 #probe to the 99th percentile from the mean
     #smax_dist = 1.5
     bins = np.linspace(min_dist, max_dist, bin_number)
     """
@@ -471,14 +492,13 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
-    print(len(bins))
     
     #NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
 
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
     NormScore = norm(corr,dcorr,bins)
-    StructureScore = reduced_chi_square(corr, dcorr, expected = None)
+    #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
 
         
     

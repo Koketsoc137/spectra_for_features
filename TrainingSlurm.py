@@ -15,10 +15,7 @@ import time
 import h5py
 import skdim
 import pickle
-    
-importlib.reload(cust)
-importlib.reload(viz)
-importlib.reload(AstroMLmod)
+import random    
 
 
 def get_data_loaders(Dir = "some/directory", batch_size = 32):
@@ -61,7 +58,7 @@ def galaxyzoo10(batch_size = 256):
 
     # To convert to desirable type
     labels = labels.astype(np.int64)
-    #labels = perturb_list_by_swapping(labels, percentage=5)
+    #labels = perturb_list_by_swapping(labels, percentage=30)
     images = images.astype(np.float16)
     
 
@@ -144,7 +141,7 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     train, val = evaluate(model, train_loader, test_loader, device)
 
     #get representatations
-    test_representations = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
+    test_representations, test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
 
     #conpute the id_score
     #id_score,std = AstroMLmod.id_score(test_representations)
@@ -155,7 +152,8 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     train_accuracy.append(train)
     #Faltten the manifold
     epoch = 0
-    val_flat = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
+    #val_flat = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
+    val_flat = viz.pca(test_representations,n_components = 2)
 
     print(len(val_flat))
     
@@ -200,10 +198,10 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
         
         train, val = evaluate(model, train_loader, test_loader, device)
         #save classification layer for next epoch
-        
+    
         class_layer = model.classifier
         
-        test_representations = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
+        test_representations,test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
 
         #conpute the id_score
         #id_score,std = AstroMLmod.id_score(test_representations)
@@ -213,7 +211,9 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
 
 
         #Faltten the manifold
-        val_flat = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
+        #val_flat = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
+        val_flat = viz.pca(test_representations,n_components = 2)
+
 
         chi_score, norm_score = AstroMLmod.correlate_and_plot(val_flat,
                                                                       min_dist = 0.0,
@@ -251,7 +251,7 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(chi_scores,file)
                 
-            pkl_filename = "k_scores.csv"
+            pkl_filename = "norm_scores.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(norm_scores,file)
                 
