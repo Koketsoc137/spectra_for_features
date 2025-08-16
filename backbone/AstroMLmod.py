@@ -117,10 +117,9 @@ def first_order_structure(bootstraps):
     return corr,reduced_nonchi_square(corr, error, expected = None)
 
 
-def precompute_gaussian_RR(bins = np.linspace(0, 1.5, 100), dimension = 3,n_points =50000):
+def precompute_gaussian_RR(bins = np.linspace(0, 1.5, 100), dimension = 3,n_points =50000, metric = "euclidean"):
     
     
-        max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
 
         Eff_mean = np.zeros(dimension)
           
@@ -128,7 +127,7 @@ def precompute_gaussian_RR(bins = np.linspace(0, 1.5, 100), dimension = 3,n_poin
 
         #Obtrain the distance distribution
 
-        KDT_D = KDTree(background,metric = metric)
+        KDT_R = KDTree(background,metric = metric)
 
         counts_RR = KDT_R.two_point_correlation(background, bins)
 

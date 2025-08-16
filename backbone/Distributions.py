@@ -116,7 +116,7 @@ def generate_random_points_nd(n_points,s_l = 1,dimension = 2, seed = 42):
     Returns:
         points (np.ndarray): 2D array of points (n_points, 2).
     """
-    points = np.random.uniform(-s_l, s_l, size=(n_points, dimnesion))
+    points = np.random.uniform(-s_l, s_l, size=(n_points, dimension))
     
     return points
 
