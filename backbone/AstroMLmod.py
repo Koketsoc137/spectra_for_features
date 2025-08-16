@@ -118,6 +118,23 @@ def first_order_structure(bootstraps):
 
 
 def precompute_gaussian_RR(bins = np.linspace(0, 1.5, 100), dimension = 3,n_points =50000, metric = "euclidean"):
+        return precomputed = np.array([448028, 1330494, 2198238, 3046892, 3876978, 4693396, 
+                5486932, 6266590, 7028676, 7775688, 8513268, 9226058, 
+                9924878, 10606278, 11278858, 11936514, 12561862, 13183042,
+                13792434, 14370928, 14942908, 15494356, 16045886, 16579952,
+                17083098, 17577980, 18066512, 18530036, 18988736, 19422774,
+                19852576, 20250260, 20638884, 21019068, 21385978, 21748132,
+                22085560, 22403576, 22709800, 23017374, 23301002, 23553432,
+                23824386, 24056018, 24271838, 24486842, 24685586, 24871376,
+                25054644, 25196824, 25362646, 25521042, 25652240, 25768780,
+                25877726, 25985252, 26068114, 26134084, 26193962, 26255878,
+                26274226, 26306128, 26302730, 26317506, 26316020, 26286668,
+                26268222, 26230330, 26197146, 26146488, 26075090, 25998468,
+                25909506, 25799002, 25673556, 25565654, 25428602, 25300042,
+                25150500, 24991880, 24816718, 24637116, 24461706, 24285032,
+                24081964, 23882128, 23658832, 23415816, 23179138, 22913860,
+                22663944, 22373258, 22071804, 21795744, 21519664, 21193786,
+                20885754, 20570808, 20244604])
     
     
 
@@ -198,10 +215,13 @@ def two_point(data,
         data_R = np.asarray(data_R)
         if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
             raise ValueError('data_R must have same n_features as data')
-    """
+    
     if precomputed_RR is not None:
 
-        data_to_random_ratio = recomputed
+        data_to_random_ratio = r
+
+    """
+    print("FIXT THE RATIO PROBLEM!!")
 
     factor = 20*len(data) * 1. / len(data)
 
@@ -221,7 +241,7 @@ def two_point(data,
         KDT_R = KDTree(data_R, metric = metric)
         counts_RR = KDT_R.two_point_correlation(data_R, bins)
     else:
-        raise("No viable background distance distribution distribution")
+        print("No viable background distance distribution distribution")
 
     
 
@@ -355,7 +375,7 @@ def bootstrap_two_point(data,
             bootstraps[i],_ = two_point(data[indices, :],
                                         bins, 
                                         method=method,
-                                        precumputed_RR=precomputed_RR,
+                                        precomputed_RR=precomputed_RR,
                                       random_state=rng)
             print(time.time()-stamp_1)
             
@@ -382,6 +402,7 @@ def correlate_and_plot(data = list,
                        Nbootstrap = 5,
                        representations = [],
                        precomputed_RR = None,
+                       background = None,
                        label = "correlation on features",
                        fig_name ="tpcor",
                        return_corr = False,
@@ -404,8 +425,7 @@ def correlate_and_plot(data = list,
     distances = np.linalg.norm(data, axis=1)
     max_dist = np.percentile(distances, 95)*2
 
-    data = data/max_dist
-
+    print(max_dist)
 
 
     if precomputed_RR is not None:
