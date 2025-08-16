@@ -117,7 +117,7 @@ def first_order_structure(bootstraps):
     return corr,reduced_nonchi_square(corr, error, expected = None)
 
 
-def precompute_gaussian_RR(bins = 100, dimension = 3,n_points =50000):
+def precompute_gaussian_RR(bins = np.linspace(0, 1.5, 100), dimension = 3,n_points =50000):
     
     
         max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
@@ -128,7 +128,7 @@ def precompute_gaussian_RR(bins = 100, dimension = 3,n_points =50000):
 
         #Obtrain the distance distribution
 
-        KDT_D = KDTree(data,metric = metric)
+        KDT_D = KDTree(background,metric = metric)
 
         counts_RR = KDT_R.two_point_correlation(background, bins)
 
@@ -147,8 +147,8 @@ def two_point(data,
               errors = "poisson",
               counts_RR = None,
               random_state=42, 
-              metric = "euclidean"
-             precomputed_RR = precomputed_RR):
+              metric = "euclidean",
+             precomputed_RR = None):
     """Two-point correlation function
 
     Parameters
@@ -268,7 +268,7 @@ def bootstrap_two_point(data,
                         data_R = None,
                         sub_sample_fraction = 0.1,
                        flatten_reps = True,
-                        representations =None
+                        representations =None,
                        precomputed_RR = None):
 
     
@@ -382,11 +382,11 @@ def correlate_and_plot(data = list,
                        plot = False, 
                        Nbootstrap = 5,
                        representations = [],
-                       precumputed_RR = None,
+                       precomputed_RR = None,
                        label = "correlation on features",
                        fig_name ="tpcor",
-                       return_corr = False
-                        verbose = 3):
+                       return_corr = False,
+                       verbose = 3):
 
 
     """

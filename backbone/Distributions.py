@@ -105,7 +105,7 @@ def generate_points_on_disk(radius, n_points, center = [0,0]):
     return points
 
 
-def generate_random_points_nd(n_points,s_l = 1,dimension = dimension, seed = 42):
+def generate_random_points_nd(n_points,s_l = 1,dimension = 2, seed = 42):
     """
     Generate random points in 2D space.
 
