@@ -460,13 +460,13 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     # Sample covariance matrices
     Nbootstrap = 5
     #Percentile of the scaled data
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 99)*2
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
   
     background = dist.generate_gaussian_points(Eff_mean, Eff_cov,10*len(data), seed = random.randint(0,10000))
     #background = dist.generate_random_points_2d(10*len(data),s_l =2 ,seed = 42)
     
     
-    max_dist = np.percentile(np.linalg.norm(background, axis=1), 95)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 68)*2 #probe to the 99th percentile from the mean
     #smax_dist = 1.5
     bins = np.linspace(min_dist, max_dist, bin_number)
     """
