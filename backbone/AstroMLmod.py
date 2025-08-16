@@ -118,7 +118,7 @@ def first_order_structure(bootstraps):
 
 
 def precompute_gaussian_RR(bins = np.linspace(0, 1.5, 100), dimension = 3,n_points =50000, metric = "euclidean"):
-        return precomputed = np.array([448028, 1330494, 2198238, 3046892, 3876978, 4693396, 
+        return np.array([448028, 1330494, 2198238, 3046892, 3876978, 4693396, 
                 5486932, 6266590, 7028676, 7775688, 8513268, 9226058, 
                 9924878, 10606278, 11278858, 11936514, 12561862, 13183042,
                 13792434, 14370928, 14942908, 15494356, 16045886, 16579952,
@@ -423,12 +423,16 @@ def correlate_and_plot(data = list,
     #Scale by finding the furtherst point (or 95th percentile to aviod artifacts or statistical flukes)
     
     distances = np.linalg.norm(data, axis=1)
-    max_dist = np.percentile(distances, 95)*2
+    scaling_factor = np.percentile(distances, 95)
+    data = data/scaling_factor
+    dist.scatter_points(data, alpha = 0.5)
+    
 
-    print(max_dist)
+
+    print(scaling_factor)
 
 
-    if precomputed_RR is not None:
+    if precomputed_RR is None:
 
         if verbose >3:
             print("Computing background and RR distributions: will be slower")
@@ -452,7 +456,6 @@ def correlate_and_plot(data = list,
     #background = dist.generate_random_points_2d(10*len(data),s_l =2 ,seed = 42)
     
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2 #probe to the 99th percentile from the mean
     #smax_dist = 1.5
     bins = np.linspace(min_dist, max_dist, bin_number)
     """
@@ -481,11 +484,11 @@ def correlate_and_plot(data = list,
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
     
-    #NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
+    NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
 
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
-    NormScore = norm(corr,dcorr,bins)
+    #NormScore = norm(corr,dcorr,bins)
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
 
         
