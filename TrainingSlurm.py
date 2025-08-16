@@ -65,7 +65,7 @@ def galaxyzoo10(batch_size = 256):
     transformed_dataset = cust.ArrayDataset(images = images,labels =labels,names = ids,resize = 256,crop = 224)
 
 
-    dataset_split = cust.train_val_dataset(transformed_dataset, train_size = 0.7,val_split=0.3)
+    dataset_split = cust.train_val_dataset(transformed_dataset, train_size = 0.6,val_split=0.4)
     
 
     train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True)
@@ -109,7 +109,7 @@ def evaluate(model, train_loader,test_loader, device):
 
 
 
-def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_new", batch_size=256, device='cuda'):
+def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_new", batch_size=128, device='cuda'):
 
     fig = plt.figure(dpi = 300)
     plt.style.use("default")
@@ -211,7 +211,15 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
 
 
         #Faltten the manifold
-        #val_flat = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
+        val_umap = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
+
+
+
+        pkl_filename = "plots/val_flat"+str(epoch)+".csv"
+        with open(pkl_filename, 'wb') as file:
+            pickle.dump(val_umap,file)
+
+            
         val_flat = viz.pca(test_representations,n_components = 2)
 
 
