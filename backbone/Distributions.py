@@ -17,6 +17,30 @@ def norm(observed, expected = None):
     return norm/np.count_nonzero(~np.isnan(observed))
 
 
+
+
+def scale_and_sample(pca_features, sub_sample_size = 8000, n_output_features = 20, seed = 42):
+
+    #obtain an aray of the elements of highest variance
+    first_elements = pca_features[:,0]
+    #compute the mean and std
+    mean = np.mean(first_elements)
+    std_dev = np.std(first_elements)
+    np.seed = seed
+        
+    #scale the representations
+    scaled_rep = np.array([(representation-mean)/std_dev for representation in pca_features])
+
+    #Subsample
+    
+    sampled = scaled_rep[np.random.choice(pca_features.shape[0], sub_sample_size, replace=False)]
+    #Reduce the dimension, get only the first n features 
+    smaller = []
+    for sample in sampled:
+        smaller.append(sample[:n_output_features])
+
+    return smaller
+    
 def reduced_nonchi_square(observed, errors, expected = None):
 
     nonchi_square = np.sum(observed)
@@ -81,7 +105,7 @@ def generate_points_on_disk(radius, n_points, center = [0,0]):
     return points
 
 
-def generate_random_points_2d(n_points,s_l = 1,seed = 42):
+def generate_random_points_nd(n_points,s_l = 1,dimension = dimension, seed = 42):
     """
     Generate random points in 2D space.
 
@@ -92,7 +116,7 @@ def generate_random_points_2d(n_points,s_l = 1,seed = 42):
     Returns:
         points (np.ndarray): 2D array of points (n_points, 2).
     """
-    points = np.random.uniform(-s_l, s_l, size=(n_points, 2))
+    points = np.random.uniform(-s_l, s_l, size=(n_points, dimnesion))
     
     return points
 
