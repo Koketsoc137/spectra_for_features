@@ -15,7 +15,11 @@ import skdim
 import time
 
 
-random.seed(random.randint(0,10000))
+
+
+"""
+Summary statistics for the 2 point correlation function
+"""
 
 def norm(observed, errors = None, bins =[]):
     
@@ -112,31 +116,39 @@ def first_order_structure(bootstraps):
 
     return corr,reduced_nonchi_square(corr, error, expected = None)
 
-def scale_and_sample(pca_features, sub_sample_size = 8000, n_output_features = 20, seed = 42):
 
-    #obtain an aray of the elements of highest variance
-    first_elements = pca_features[:,0]
-    #compute the mean and std
-    mean = np.mean(first_elements)
-    std_dev = np.std(first_elements)
-    np.seed = seed
-        
-    #scale the representations
-    scaled_rep = np.array([(representation-mean)/std_dev for representation in pca_features])
-
-    #Subsample
+def precompute_gaussian_RR(bins = 100, dimension = 3,n_points =50000):
     
-    sampled = scaled_rep[np.random.choice(pca_features.shape[0], sub_sample_size, replace=False)]
-    #Reduce the dimension, get only the first n features 
-    smaller = []
-    for sample in sampled:
-        smaller.append(sample[:n_output_features])
+    
+        max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
 
-    return smaller
+        Eff_mean = np.zeros(dimension)
+          
+        background = dist.generate_random_points_nd(n_points,s_l = 1,dimension = dimension, seed = 42)
+
+        #Obtrain the distance distribution
+
+        KDT_D = KDTree(data,metric = metric)
+
+        counts_RR = KDT_R.two_point_correlation(background, bins)
+
+        RR = np.diff(counts_RR)
+
+        return RR
+        
+    
 
 
-def two_point(data, bins, method='standard', errors = "poisson",
-              counts_RR = None, random_state=42, metric = "euclidean"):
+
+
+def two_point(data,
+              bins,
+              method='standard',
+              errors = "poisson",
+              counts_RR = None,
+              random_state=42, 
+              metric = "euclidean"
+             precomputed_RR = precomputed_RR):
     """Two-point correlation function
 
     Parameters
@@ -188,22 +200,31 @@ def two_point(data, bins, method='standard', errors = "poisson",
         if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
             raise ValueError('data_R must have same n_features as data')
     """
+    if precomputed_RR is not None:
 
-    factor = 10*len(data) * 1. / len(data)
+        data_to_random_ratio = recomputed
+
+    factor = 20*len(data) * 1. / len(data)
+
 
     # Fast two-point correlation functions added in scikit-learn v. 0.14
+
+    #distance distribution for the data
+
+
     KDT_D = KDTree(data,metric = metric)
-    if counts_RR is None:
+    counts_DD = KDT_D.two_point_correlation(data, bins)
+    DD = np.diff(counts_DD)
+
+    RR = precomputed_RR
+
+    if RR is None and counts_RR is None and data_R is not None:
         KDT_R = KDTree(data_R, metric = metric)
         counts_RR = KDT_R.two_point_correlation(data_R, bins)
     else:
-        Data_R = 1 
+        raise("No viable background distance distribution distribution")
 
-    counts_DD = KDT_D.two_point_correlation(data, bins)
-    #
-
-    DD = np.diff(counts_DD)
-    RR = np.diff(counts_RR)
+    
 
     # check for zero in the denominator
     RR_zero = (RR == 0)
@@ -233,99 +254,24 @@ def two_point(data, bins, method='standard', errors = "poisson",
     else:
         return corr, data_R
 
-def UMAP_twopoint(High_dimenensional_data, Nbootstrap=10,
-                        method='standard', return_bootstraps=False,
-                        random_state=None,data_R = None,sub_sample_fraction = 0.1,
-                      ):
-    """Bootstrapped two-point correlation function
-
-    Parameters
-    ----------
-    data : array_like
-        input data, shape = [n_samples, n_features]
-    bins : array_like
-        bins within which to compute the 2-point correlation.
-        shape = Nbins + 1
-    Nbootstrap : integer
-        number of bootstrap resamples to perform (default = 10)
-    method : string
-        "standard" or "landy-szalay".
-    return_bootstraps: bool
-        if True, return full bootstrapped samples
-    random_state : integer, np.random.RandomState, or None
-        specify the random state to use for generating background
-
-    Returns
-    -------
-    corr, corr_err : ndarrays
-        the estimate of the correlation function and the bootstrap
-        error within each bin. shape = Nbins
-    """
-    high_dimensional_data = np.asarray(high_dimensional_data)
-    bins = np.asarray(bins)
-    rng = check_random_state(random_state)
-
-    """
-
-    if method not in ['standard', 'landy-szalay']:
-        raise ValueError("method must be 'standard' or 'landy-szalay'")
-
-    if bins.ndim != 1:
-        raise ValueError("bins must be a 1D array")
-
-    if data.ndim == 1:
-        data = data[:, np.newaxis]
-    elif data.ndim != 2:
-        raise ValueError("data should be 1D or 2D")
-
-    """
-
-
-    n_samples, n_features = data.shape
-
-
-
-    bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
-    #bootbins = np.zeros((Nbootstrap, len(bins[1:])))
-
-    for i in range(Nbootstrap):
-
-                
-                
-        data = viz.umap(representations,scatter = False,name = "UMAP", dim = 2, min_dist = 0.6, n_neighbors = 50,alpha = 0.2)
-        data = data/max(np.max(data),abs(np.min(data)))
-
-        indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
-        data, bins = flatten_and_bin(high_dimensional_data)
-        
-        bootstraps[i],_ = two_point(data, bins, method=method,
-                                          random_state=i,data_R = data_R[indices, :])
-  
-
-
-
-    if return_bootstraps:
-        return bootstraps
-    else:
-        # use masked std dev in case of NaNs
-        corr = np.ma.masked_invalid(bootstraps).mean(0)
-        corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
-        
-        return corr, corr_err
-
-def flatten_and_bin(high_demensional_data, Nbins):
-
-    data = viz.umap(high_dimensional_data,scatter = False,name = "UMAP", dim = 2, min_dist = 0.6, n_neighbors = 50,alpha = 0.2)
-    data = data/max(np.max(data),abs(np.min(data)))
 
     
 
 
 
-def bootstrap_two_point(data, bins, Nbootstrap=10,
-                        method='standard', return_bootstraps=False,
-                        random_state=None,data_R = None,sub_sample_fraction = 0.1,
-                       flatten_reps = True,representations =None):
+def bootstrap_two_point(data, 
+                        bins, 
+                        Nbootstrap=10,
+                        method='standard', 
+                        return_bootstraps=False,
+                        random_state=None,
+                        data_R = None,
+                        sub_sample_fraction = 0.1,
+                       flatten_reps = True,
+                        representations =None
+                       precomputed_RR = None):
+
+    
     """Bootstrapped two-point correlation function
 
     Parameters
@@ -350,6 +296,8 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
         the estimate of the correlation function and the bootstrap
         error within each bin. shape = Nbins
     """
+
+    
     data = np.asarray(data)
     bins = np.asarray(bins)
     rng = check_random_state(random_state)
@@ -368,26 +316,19 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
 
     n_samples, n_features = data.shape
 
-    KDT_R = KDTree(data_R, metric = "euclidean")
-    counts_RR = KDT_R.two_point_correlation(data_R, bins)
-
-
-    if Nbootstrap ==0:
-        # get the baseline estimate
-        corr, data_R = two_point(data, bins, method=method, random_state=rng,counts_RR= counts_RR)
-        return corr, data_R
+    
+    if precomputed_RR is None:
+        KDT_R = KDTree(data_R, metric = "euclidean")
+        counts_RR = KDT_R.two_point_correlation(data_R, bins)
     
 
     bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
-    #bootbins = np.zeros((Nbootstrap, len(bins[1:])))
 
     if data_R is not None:
         #If the rerpesentations are to be flattened using UMAP
         if flatten_reps:
             for i in range(Nbootstrap):
-
-                
-                
+                                
                 data = viz.umap(representations,scatter = False,name = "UMAP", dim = 2, min_dist = 0.6, n_neighbors = 50,alpha = 0.2)
                 data = data/max(np.max(data),abs(np.min(data)))
 
@@ -399,19 +340,25 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
         else:
     
             for i in range(Nbootstrap):
-                stamp_1 = time.time()
                 indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
                 bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
                                           random_state=i,counts_RR = counts_RR)
-                print(stamp_1-time.time())
 
-
+    
     else:
     
         for i in range(Nbootstrap):
+
+            stamp_1 = time.time()
+
             indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
-            bootstraps[i],_ = two_point(data[indices, :], bins, method=method,
+
+            bootstraps[i],_ = two_point(data[indices, :],
+                                        bins, 
+                                        method=method,
+                                        precumputed_RR=precomputed_RR,
                                       random_state=rng)
+            print(time.time()-stamp_1)
             
             
   
@@ -428,45 +375,65 @@ def bootstrap_two_point(data, bins, Nbootstrap=10,
         return corr, corr_err
 
 
-def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
-                    bin_number = 100,plot = False, label = "correlation on features",fig_name ="tpcor",return_corr = False, representations = []):
+def correlate_and_plot(data = list,
+                       max_dist = 1.5,
+                       min_dist=0,
+                       bin_number = 100,
+                       plot = False, 
+                       Nbootstrap = 5,
+                       representations = [],
+                       precumputed_RR = None,
+                       label = "correlation on features",
+                       fig_name ="tpcor",
+                       return_corr = False
+                        verbose = 3):
 
 
+    """
+    Scale the data into a unit block. Center and pull the furthest point in to the edge of such a box
+
+    """
     #Center, scale down the sample
-    bin_number = 100
-
-    
 
     Eff_mean = np.mean(data, axis = 0)
 
-    #Center
+    #Center to 0,0,0,...
     data = data - Eff_mean
-
-    #Scale
+    
+    #Scale by finding the furtherst point (or 95th percentile to aviod artifacts or statistical flukes)
+    
     distances = np.linalg.norm(data, axis=1)
     max_dist = np.percentile(distances, 95)*2
-    print(max_dist)
-    print(np.percentile(distances, 99)*2)
 
     data = data/max_dist
-    #data = data/max(np.max(data),abs(np.min(data)))
-    Eff_mean  = Eff_mean - Eff_mean
-    Eff_cov = np.cov(data,rowvar = False)
-    #print(Eff_cov)
+
+
+
+    if precomputed_RR is not None:
+
+        if verbose >3:
+            print("Computing background and RR distributions: will be slower")
+
     
+            Eff_cov = np.cov(data,rowvar = False)
+            
+        
+            length, dimension = data.shape
+        
+            #Percentile of the scaled data
+            
+            max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
+          
+            background = dist.generate_gaussian_points(Eff_mean, 
+                                                       Eff_cov,10*len(data), 
+                                                       dimensions = dimension,
+                                                       seed = random.randint(0,10000))
 
-    length, dimension = data.shape
-
-    # Sample covariance matrices
-    Nbootstrap = 5
-    #Percentile of the scaled data
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
-  
-    background = dist.generate_gaussian_points(Eff_mean, Eff_cov,10*len(data), seed = random.randint(0,10000))
+    
     #background = dist.generate_random_points_2d(10*len(data),s_l =2 ,seed = 42)
     
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 68)*2 #probe to the 99th percentile from the mean
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2 #probe to the 99th percentile from the mean
     #smax_dist = 1.5
     bins = np.linspace(min_dist, max_dist, bin_number)
     """
@@ -479,7 +446,9 @@ def correlate_and_plot(data = list,max_dist = 1.5,min_dist=0,
     #plt.show()
 
     bootstraps= bootstrap_two_point(data, bins, 
-                                    data_R = background,Nbootstrap=Nbootstrap,
+                                    data_R = background,
+                                    precomputed_RR = precomputed_RR,
+                                    Nbootstrap=Nbootstrap,
                                     sub_sample_fraction =0.5,
                                     method = 'standard',  
                                     return_bootstraps =True,
