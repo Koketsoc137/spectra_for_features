@@ -63,7 +63,7 @@ def weighted_integral(correlations, bins, sigma = None, bootstrap_input = False)
             #Weighting doesnt work
             print(dr)
                     
-            weighted_int = np.sum([2*np.pi*(1+obs)*r*dr for obs,r in zip(observed,bins)])
+            weighted_int = np.sum([2*np.pi*(1+obs)*(r**2)*dr for obs,r in zip(observed,bins)])
             
             
             integrals.append(weighted_int)
@@ -423,13 +423,13 @@ def correlate_and_plot(data = list,
     #Scale by finding the furtherst point (or 95th percentile to aviod artifacts or statistical flukes)
     
     distances = np.linalg.norm(data, axis=1)
-    scaling_factor = np.percentile(distances, 95)
-    data = data/scaling_factor
-    dist.scatter_points(data, alpha = 0.5)
+    max_dist = np.percentile(distances, 95)*2
+    print(max_dist)
+    #data = data/scaling_factor
+    #dist.scatter_points(data[:-1,:], alpha = 0.5)
     
 
 
-    print(scaling_factor)
 
 
     if precomputed_RR is None:
@@ -448,7 +448,8 @@ def correlate_and_plot(data = list,
             max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
           
             background = dist.generate_gaussian_points(Eff_mean, 
-                                                       Eff_cov,10*len(data), 
+                                                       Eff_cov,
+                                                       10*len(data), 
                                                        dimensions = dimension,
                                                        seed = random.randint(0,10000))
 
@@ -471,7 +472,7 @@ def correlate_and_plot(data = list,
                                     data_R = background,
                                     precomputed_RR = precomputed_RR,
                                     Nbootstrap=Nbootstrap,
-                                    sub_sample_fraction =0.5,
+                                    sub_sample_fraction =0.7,
                                     method = 'standard',  
                                     return_bootstraps =True,
                                     flatten_reps = False,
