@@ -35,57 +35,17 @@ def norm(observed, errors = None, bins =[]):
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
-    norm = np.nansum([dr*(observed)**2])
+
+    
+    norm = np.sum([dr*abs(1+obs) for obs,r in zip(observed,bins)])
+
+    #norm = np.nansum([dr*(observed)**2])
 
     #
-    norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
+    norm_error = np.sum([abs(e) for o,e in zip(observed,errors)])
 
     return (norm, norm_error)
 
-def weighted_integral(correlations, bins, sigma = None, bootstrap_input = False):
-    
-
-    #removel all invalid entries
-    # K(r)  =  integral of 4*pi*r^2 *(1+ e(r)
-    bins = bins[1:]
-
-    integrals = []
-
-    if bootstrap_input:
-        for observed in correlations:
-
-            valid = (~np.isnan(observed))&(~np.isnan(bins))
-            dr = bins[1]-bins[0]
-            observed = observed[valid]
-            bins =  bins[valid]
-            
-
-            #Weighting doesnt work
-            print(dr)
-                    
-            weighted_int = np.sum([2*np.pi*(1+obs)*(r**2)*dr for obs,r in zip(observed,bins)])
-            
-            
-            integrals.append(weighted_int)
-
-            
-        
-        std_int = np.asarray(np.ma.masked_invalid(integrals).std(0, ddof=1))
-        mean_int = np.ma.masked_invalid(integrals).mean(0)
-
-
-
-        return mean_int,std_int
-    else:
-        valid = (~np.isnan(correlations))&(~np.isnan(bins))
-        correlations = correlations[valid]
-        bins =  bins[valid]
-        dr = bins[1]-bins[0]
-
-                    
-        weighted_int = np.sum([2*np.pi*(1+obs)*r*dr for obs,r in zip(correlations,bins)])
-
-        return weighted_int,0
         
 
 def reduced_chi_square(observed, errors, expected = None):
@@ -151,6 +111,86 @@ def precompute_gaussian_RR(bins = np.linspace(0, 1.5, 100), dimension = 3,n_poin
         RR = np.diff(counts_RR)
 
         return RR
+
+def two_point_orig(data, bins, method='standard',
+              data_R=None, random_state=None):
+    """Two-point correlation function
+
+    Parameters
+    ----------
+    data : array_like
+        input data, shape = [n_samples, n_features]
+    bins : array_like
+        bins within which to compute the 2-point correlation.
+        shape = Nbins + 1
+    method : string
+        "standard" or "landy-szalay".
+    data_R : array_like (optional)
+        if specified, use this as the random comparison sample
+    random_state : integer, np.random.RandomState, or None
+        specify the random state to use for generating background
+
+    Returns
+    -------
+    corr : ndarray
+        the estimate of the correlation function within each bin
+        shape = Nbins
+    """
+    data = np.asarray(data)
+    bins = np.asarray(bins)
+    rng = check_random_state(random_state)
+
+    if method not in ['standard', 'landy-szalay']:
+        raise ValueError("method must be 'standard' or 'landy-szalay'")
+
+    if bins.ndim != 1:
+        raise ValueError("bins must be a 1D array")
+
+    if data.ndim == 1:
+        data = data[:, np.newaxis]
+    elif data.ndim != 2:
+        raise ValueError("data should be 1D or 2D")
+
+    n_samples, n_features = data.shape
+
+    # shuffle all but one axis to get background distribution
+    if data_R is None:
+        data_R = data.copy()
+        for i in range(n_features - 1):
+            rng.shuffle(data_R[:, i])
+    else:
+        data_R = np.asarray(data_R)
+        if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
+            raise ValueError('data_R must have same n_features as data')
+
+    factor = len(data_R) * 1. / len(data)
+
+    # Fast two-point correlation functions added in scikit-learn v. 0.14
+    KDT_D = KDTree(data)
+    KDT_R = KDTree(data_R)
+
+    counts_DD = KDT_D.two_point_correlation(data, bins)
+    counts_RR = KDT_R.two_point_correlation(data_R, bins)
+
+    DD = np.diff(counts_DD)
+    RR = np.diff(counts_RR)
+
+    # check for zero in the denominator
+    RR_zero = (RR == 0)
+    RR[RR_zero] = 1
+
+    if method == 'standard':
+        corr = factor ** 2 * DD / RR - 1
+    elif method == 'landy-szalay':
+        counts_DR = KDT_R.two_point_correlation(data, bins)
+
+        DR = np.diff(counts_DR)
+
+        corr = (factor ** 2 * DD - 2 * factor * DR + RR) / RR
+
+    corr[RR_zero] = np.nan
+
+    return corr,corr
         
     
 
@@ -159,9 +199,10 @@ def precompute_gaussian_RR(bins = np.linspace(0, 1.5, 100), dimension = 3,n_poin
 
 def two_point(data,
               bins,
-              method='standard',
+              method='landy_zalay',
               errors = "poisson",
               counts_RR = None,
+              data_R = None,
               random_state=42, 
               metric = "euclidean",
              precomputed_RR = None):
@@ -223,7 +264,7 @@ def two_point(data,
     """
     print("FIXT THE RATIO PROBLEM!!")
 
-    factor = 20*len(data) * 1. / len(data)
+    factor = len(data) * 1. / len(data)
 
 
     # Fast two-point correlation functions added in scikit-learn v. 0.14
@@ -237,12 +278,17 @@ def two_point(data,
 
     RR = precomputed_RR
 
+
     if RR is None and counts_RR is None and data_R is not None:
         KDT_R = KDTree(data_R, metric = metric)
         counts_RR = KDT_R.two_point_correlation(data_R, bins)
-    else:
+        RR = np.diff(counts_RR)
+    elif RR is None:
+        RR = np.diff(counts_RR)
         print("No viable background distance distribution distribution")
-
+    plt.plot(RR)
+    plt.plot(DD)
+    plt.show()
     
 
     # check for zero in the denominator
@@ -259,7 +305,7 @@ def two_point(data,
         corr = (factor ** 2 * DD - 2 * factor * DR + RR) / RR
 
     #
-    corr[RR_zero] = np.nan
+    corr[RR_zero] = 0   #np.nan
     #dist.scatter_points(data_R,alpha = 0.1,title =  "Gaussian space sparse")
     if errors == "poisson":
         DD_zero = (DD == 0) 
@@ -337,8 +383,11 @@ def bootstrap_two_point(data,
 
     
     if precomputed_RR is None:
+        stamp = time.time()
+        print("Computing counts from background")
         KDT_R = KDTree(data_R, metric = "euclidean")
         counts_RR = KDT_R.two_point_correlation(data_R, bins)
+        print("Counts compute time: ", time.time()-stamp)
     
 
     bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
@@ -406,7 +455,7 @@ def correlate_and_plot(data = list,
                        label = "correlation on features",
                        fig_name ="tpcor",
                        return_corr = False,
-                       verbose = 3):
+                       verbose = 4):
 
 
     """
@@ -423,7 +472,7 @@ def correlate_and_plot(data = list,
     #Scale by finding the furtherst point (or 95th percentile to aviod artifacts or statistical flukes)
     
     distances = np.linalg.norm(data, axis=1)
-    max_dist = np.percentile(distances, 95)*2
+    max_dist = np.percentile(distances, 99)*2
     print(max_dist)
     #data = data/scaling_factor
     #dist.scatter_points(data[:-1,:], alpha = 0.5)
@@ -435,7 +484,7 @@ def correlate_and_plot(data = list,
     if precomputed_RR is None:
 
         if verbose >3:
-            print("Computing background and RR distributions: will be slower")
+            print("Computing background and RR distributions, will be slower.")
 
     
             Eff_cov = np.cov(data,rowvar = False)
@@ -444,43 +493,67 @@ def correlate_and_plot(data = list,
             length, dimension = data.shape
         
             #Percentile of the scaled data
-            
             max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
-          
+            
             background = dist.generate_gaussian_points(Eff_mean, 
                                                        Eff_cov,
-                                                       10*len(data), 
+                                                       2*len(data), 
                                                        dimensions = dimension,
                                                        seed = random.randint(0,10000))
-
-    
-    #background = dist.generate_random_points_2d(10*len(data),s_l =2 ,seed = 42)
+            """
+            
+            
+            background = dist.generate_random_points_nd(2*len(data),
+                                                        s_l =max_dist ,
+                                                        dimension = 3,
+                                                        seed = 42)
+            """
+            dist.scatter_overlay(data,background)
+            
+            
+            
+            
     
     
     #smax_dist = 1.5
     bins = np.linspace(min_dist, max_dist, bin_number)
+
+    
     """
 
-    corr, dcorr = two_point(data, bins, method='standard', errors = "poisson",
-              data_R=background, random_state=42, metric = "euclidean")
+    corr, dcorr = two_point_orig(data, 
+                            bins, 
+                            method='landy-szalay', 
+                          #  errors = "poisson",
+                           # data_R=background, 
+                            random_state=42,
+                            #metric = "euclidean"
+                            )
+
+    StructureScore  = 1
+
+
+
+
+    
     NormScore = weighted_integral(corr,bins, bootstrap_input = False)
-    """
+    
     #dist.scatter_points(data, alpha = 0.5)
     #plt.show()
-
+    """
     bootstraps= bootstrap_two_point(data, bins, 
                                     data_R = background,
                                     precomputed_RR = precomputed_RR,
                                     Nbootstrap=Nbootstrap,
-                                    sub_sample_fraction =0.7,
+                                    sub_sample_fraction =0.5,
                                     method = 'standard',  
                                     return_bootstraps =True,
                                     flatten_reps = False,
                                     representations = representations,
                                     )
+        
 
     
-
     
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
@@ -488,11 +561,11 @@ def correlate_and_plot(data = list,
     NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
 
     corr = np.ma.masked_invalid(bootstraps).mean(0)
+    print(corr)
     dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
-    #NormScore = norm(corr,dcorr,bins)
+    NormScore =  norm(corr,dcorr,bins)
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
 
-        
     
     print("Chi-Square score: ",StructureScore)
     print("Repley's K: ",NormScore)
@@ -508,7 +581,7 @@ def correlate_and_plot(data = list,
         plt.title(label)
         plt.savefig(fig_name+".png")
         plt.show()
-        return StructureScore, NormScore
+        return 1,1,StructureScore, NormScore
 
     elif return_corr:
         return corr,dcorr,StructureScore,NormScore
@@ -528,7 +601,6 @@ def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = Fal
             if verbose:
                 print("ID :",ID)
         return np.mean(IDs, axis = 0),np.std(IDs,axis = 0, ddof=1)
-
 
 
 
