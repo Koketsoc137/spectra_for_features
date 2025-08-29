@@ -190,7 +190,7 @@ def two_point_orig(data, bins, method='standard',
 
     corr[RR_zero] = np.nan
 
-    return corr,corr
+    return corr, np.asarray([(1+cor)/math.sqrt(d) for cor,d in zip(corr,DD)])
         
     
 
@@ -264,7 +264,7 @@ def two_point(data,
     """
     print("FIXT THE RATIO PROBLEM!!")
 
-    factor = len(data) * 1. / len(data)
+    factor = 2*Nbootstrap*len(data) * 1. / len(data)
 
 
     # Fast two-point correlation functions added in scikit-learn v. 0.14
@@ -286,10 +286,7 @@ def two_point(data,
     elif RR is None:
         RR = np.diff(counts_RR)
         print("No viable background distance distribution distribution")
-    plt.plot(RR)
-    plt.plot(DD)
-    plt.show()
-    
+
 
     # check for zero in the denominator
     RR_zero = (RR == 0)
@@ -508,7 +505,7 @@ def correlate_and_plot(data = list,
                                                         dimension = 3,
                                                         seed = 42)
             """
-            dist.scatter_overlay(data,background)
+            #dist.scatter_overlay(data,background)
             
             
             
@@ -519,8 +516,7 @@ def correlate_and_plot(data = list,
     bins = np.linspace(min_dist, max_dist, bin_number)
 
     
-    """
-
+    
     corr, dcorr = two_point_orig(data, 
                             bins, 
                             method='landy-szalay', 
@@ -530,17 +526,19 @@ def correlate_and_plot(data = list,
                             #metric = "euclidean"
                             )
 
+    
     StructureScore  = 1
 
 
 
+    """
 
     
     NormScore = weighted_integral(corr,bins, bootstrap_input = False)
     
     #dist.scatter_points(data, alpha = 0.5)
     #plt.show()
-    """
+    
     bootstraps= bootstrap_two_point(data, bins, 
                                     data_R = background,
                                     precomputed_RR = precomputed_RR,
@@ -551,6 +549,7 @@ def correlate_and_plot(data = list,
                                     flatten_reps = False,
                                     representations = representations,
                                     )
+    """
         
 
     
@@ -558,11 +557,10 @@ def correlate_and_plot(data = list,
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
     StructureScore  = 1
     
-    NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
+    #NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
 
-    corr = np.ma.masked_invalid(bootstraps).mean(0)
-    print(corr)
-    dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+    #corr = np.ma.masked_invalid(bootstraps).mean(0)
+    #dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
     NormScore =  norm(corr,dcorr,bins)
     #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
 
