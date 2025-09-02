@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+from sklearn.neighbors import KDTree
+
 #matplotlib.rc('font', **font)
 
 import numpy as np
@@ -218,9 +221,11 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
                            statistics = "Gaussian",
                            Eff_cov = None,
                         ):
+
+    
     
 
-    if statistics == "Gaussian" and Eff_cov:
+    if statistics == "Gaussian" and Eff_cov is None:
         raise ValueError("Eff_cov cannot be none for Gaussin statistics")
 
         
@@ -247,17 +252,18 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
     
     
     
-            Eff_mean = np.zeros(dimension)
+        Eff_mean = np.zeros(dimension)
+    
         if background is None:
 
             if statistics == "Uniform":
             
                   
-                background = dist.generate_random_points_nd(n_points,s_l = 1,dimension = dimension, seed = 42)
+                background = generate_random_points_nd(n_points,s_l = 1,dimension = dimension, seed = 42)
     
             elif statistics == "Gaussian":
     
-                background = dist.generate_gaussian_points(Eff_mean, 
+                background = generate_gaussian_points(Eff_mean, 
                                                            Eff_cov,
                                                            n_points, 
                                                            dimensions = dimension,
