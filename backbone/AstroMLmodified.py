@@ -216,7 +216,7 @@ def bootstrap_two_point(data,
 
         bootstraps[i] = two_point(data[indices, :],
                                   data_R = data_R,
-                                  bins, 
+                                  bins = bins, 
                                   method=method,
                                   precomputed_RR=precomputed_RR,
                                   random_state=rng)
@@ -293,18 +293,18 @@ def correlate_and_plot(data = list,
             
 
 
-            precomputed_RR =  precompute_RR(bins = bins,
-                               dimension = 3,
-                               n_points =len(data), 
-                               metric = "euclidean",
-                               use_stored = False,
-                               background = None,
-                               statistics = "Gaussian",
-                               Eff_cov = Eff_cov,
-                               )
+            precomputed_RR =  dist.precompute_RR(bins = bins,
+                                               dimension = dimension,
+                                               n_points =len(data), 
+                                               metric = "euclidean",
+                                               use_stored = False,
+                                               background = None,
+                                               statistics = "Gaussian",
+                                               Eff_cov = Eff_cov,
+                                               )
     
 
-    bootstraps= bootstrap_two_point(data, bins, 
+    bootstraps = bootstrap_two_point(data, bins, 
                                     data_R = background,
                                     precomputed_RR = precomputed_RR,
                                     Nbootstrap=Nbootstrap,
@@ -316,21 +316,12 @@ def correlate_and_plot(data = list,
                                     )
 
     
-
-    
-    #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
-    StructureScore  = 1
-    
-    NormScore = weighted_integral(bootstraps,bins, bootstrap_input = True)
-
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
-    #NormScore = norm(corr,dcorr,bins)
-    #StructureScore = reduced_chi_square(corr, dcorr, expected = None)
 
+    NormScore = norm(corr, errors =dcorr, bins =bins)
         
     
-    print("Chi-Square score: ",StructureScore)
     print("Repley's K: ",NormScore)
 
     
@@ -344,12 +335,12 @@ def correlate_and_plot(data = list,
         plt.title(label)
         plt.savefig(fig_name+".png")
         plt.show()
-        return StructureScore, NormScore
+        return  NormScore
 
     elif return_corr:
-        return corr,dcorr,StructureScore,NormScore
+        return corr,dcorr,NormScore
     else:
-        return StructureScore,NormScore
+        return NormScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
