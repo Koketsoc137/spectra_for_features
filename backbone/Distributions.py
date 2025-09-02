@@ -264,10 +264,10 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
             elif statistics == "Gaussian":
     
                 background = generate_gaussian_points(Eff_mean, 
-                                                           Eff_cov,
-                                                           n_points, 
-                                                           dimensions = dimension,
-                                                           seed = random.randint(0,10000))
+                                                     Eff_cov,
+                                                     n_points, 
+                                                    dimensions = dimension,
+                                                    seed = random.randint(0,10000))
     
         
     
