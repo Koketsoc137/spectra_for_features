@@ -23,7 +23,7 @@ Summary statistics for the 2 point correlation function
 
 def norm(observed,
          errors = None,
-        background_factor,
+         background_factor= 10,
          bins =[]):
     
 
@@ -37,8 +37,9 @@ def norm(observed,
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
-    print(len(observed))
-    norm = np.nansum([((background_factor/0.7)-o)**2 for o in observed])
+    norm = np.nansum([(o)**2 for o in observed])
+    print("Bakcground factor", background_factor)
+   # print(observed-(background_factor/0.7))
 
     #
     norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
@@ -56,6 +57,7 @@ def two_point(data,
               background_factor = 1,
               sub_sample_fraction =0.7,
               random_state=None):
+    
     """Two-point correlation function
 
     Parameters
@@ -111,6 +113,8 @@ def two_point(data,
 
     else:
         factor = background_factor/sub_sample_fraction
+        print("Bakcground factor from twopoint", background_factor)
+
 
 
 
@@ -132,11 +136,6 @@ def two_point(data,
             RR = np.diff(counts_RR)
     else:
         RR = precomputed_RR
-
-
-
-
-
 
     # check for zero in the denominator
     RR_zero = (RR == 0)
@@ -175,9 +174,9 @@ def bootstrap_two_point(data,
                         data_R = None,
                         background_factor = 5,
                         sub_sample_fraction =0.7,
-                       flatten_reps = True,
+                        flatten_reps = True,
                         representations =None,
-                       precomputed_RR = None):
+                        precomputed_RR = None):
 
     
     """Bootstrapped two-point correlation function
@@ -263,7 +262,7 @@ def correlate_and_plot(data = list,
                        representations = [],
                        precomputed_RR = None,
                        background = None,
-                       bacground_factor = 1,
+                       background_factor = 1,
                        label = "correlation on features",
                        fig_name ="tpcor",
                        return_corr = False,
@@ -329,6 +328,7 @@ def correlate_and_plot(data = list,
 
     bootstraps = bootstrap_two_point(data, bins, 
                                     data_R = background,
+                                    background_factor = background_factor,
                                     precomputed_RR = precomputed_RR,
                                     Nbootstrap=Nbootstrap,
                                     sub_sample_fraction =0.7,
@@ -344,7 +344,7 @@ def correlate_and_plot(data = list,
 
     NormScore = norm(corr,
                      errors =dcorr,
-                     background_factor,
+                     background_factor= background_factor,
                      bins =bins)
         
     
