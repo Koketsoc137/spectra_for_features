@@ -153,16 +153,39 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     #Faltten the manifold
     epoch = 0
     #val_flat = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
-    val_flat = viz.pca(test_representations,n_components = 2)
+    val_flat = viz.pca(test_representations,n_components = 3)
+    pkl_filename = "plots/val_3d"+str(epoch)+".csv"
+    with open(pkl_filename, 'wb') as file:
+        pickle.dump(val_flat,file)
 
     print(len(val_flat))
+    #precomputed = AstroMLmod.precompute_gaussian_RR(dimension = 2,n_points =50000)
+    precomputed = np.array([    4542,    31862,    84128,   161126,   262318,   388700,
+                                 537018,   703596,   892606,  1104392,  1331562,  1581230,
+                                1840382,  2120810,  2415330,  2730464,  3052430,  3392436,
+                                3746410,  4112252,  4493738,  4868904,  5266998,  5671720,
+                                6084012,  6505856,  6939498,  7369126,  7815928,  8252310,
+                                8715864,  9164780,  9626470, 10083890, 10549170, 11026628,
+                               11490280, 11958964, 12416746, 12901382, 13353428, 13826102,
+                               14297242, 14758236, 15216478, 15669760, 16132798, 16578098,
+                               17026402, 17458426, 17890534, 18316348, 18749662, 19154400,
+                               19594426, 19982594, 20377332, 20756950, 21136212, 21521568,
+                               21883426, 22237814, 22584688, 22905920, 23237546, 23544154,
+                               23854464, 24145680, 24438678, 24701290, 24952718, 25193714,
+                               25432696, 25664796, 25877190, 26073886, 26249768, 26435492,
+                               26574956, 26721584, 26871826, 26985336, 27096642, 27170166,
+                               27266334, 27299938, 27365040, 27404498, 27420596, 27412966,
+                               27412792, 27368596, 27348310, 27288196, 27229868, 27164724,
+                               27027756, 26912650, 26793174])
+
     
     chi_score, norm_score = AstroMLmod.correlate_and_plot(val_flat,
-                                                                      min_dist = 0.0,
-                                                                      max_dist =1.5,
-                                                                      label = "Correlation on flat manifold for epoch:"+str(epoch),
-                                                                    fig_name = "plots/2PCR@Epoch: "+str(epoch),
-                                                                  representations = test_representations
+                                                        min_dist = 0.0,
+                                                        max_dist =1.5,
+                                                        label = "Correlation on flat manifold for epoch:"+str(epoch),
+                                                        fig_name = "plots/2PCR@Epoch: "+str(epoch),
+                                                        precomputed_RR = precomputed,
+                                                        representations = test_representations
                                                              )
     #Append to list for later
 
@@ -215,19 +238,20 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
 
 
 
-        pkl_filename = "plots/val_flat"+str(epoch)+".csv"
+        pkl_filename = "plots/val_3d"+str(epoch)+".csv"
         with open(pkl_filename, 'wb') as file:
-            pickle.dump(val_umap,file)
+            pickle.dump(val_flat,file)
 
             
-        val_flat = viz.pca(test_representations,n_components = 2)
+        val_flat = viz.pca(test_representations,n_components = 3)
 
 
-        chi_score, norm_score = AstroMLmod.correlate_and_plot(val_flat,
+        chi_score, norm_score =AstroMLmod.correlate_and_plot(val_flat,
                                                                       min_dist = 0.0,
                                                                       max_dist =1.5,
                                                                       label = "Correlation on flat manifold for epoch:"+str(epoch),
                                                                       fig_name = "plots/2PCR@Epoch: "+str(epoch),
+                                                                      precomputed_RR = precomputed,
                                                                      representations = test_representations)
 
 
@@ -255,19 +279,19 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
         plt.savefig("Training_val.png")       
 
         if epoch%10 ==0:
-            pkl_filename = "chi_scores.csv"
+            pkl_filename = "reply_pca_chi_scores.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(chi_scores,file)
                 
-            pkl_filename = "norm_scores.csv"
+            pkl_filename = "reply_pca_norm_scores.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(norm_scores,file)
                 
-            pkl_filename = "chi_validation.csv"
+            pkl_filename = "reply_pca_chi_validation.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(validation_accuracy,file)
                 
-            pkl_filename = "chi_train.csv"
+            pkl_filename = "reply_pca_chi_train.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(train_accuracy,file) 
 
