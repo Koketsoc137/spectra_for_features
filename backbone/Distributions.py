@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+from sklearn.neighbors import KDTree
+
 #matplotlib.rc('font', **font)
 
 import numpy as np
@@ -206,4 +209,80 @@ def plot_autocorrelation_2d(separation, correlation,title = "Correlation"):
     plt.ylabel('Frequency of separation')
     plt.grid(False)
     plt.show()
+
+
+
+def precompute_RR(bins = np.linspace(0, 1.5, 100),
+                           dimension = 3,
+                           n_points =50000, 
+                           metric = "euclidean",
+                           use_stored = False,
+                           background = None,
+                           statistics = "Gaussian",
+                           Eff_cov = None,
+                        ):
+
+    
+    
+
+    if statistics == "Gaussian" and Eff_cov is None:
+        raise ValueError("Eff_cov cannot be none for Gaussin statistics")
+
+        
+    if use_stored:
+        return np.array([448028, 1330494, 2198238, 3046892, 3876978, 4693396, 
+                5486932, 6266590, 7028676, 7775688, 8513268, 9226058, 
+                9924878, 10606278, 11278858, 11936514, 12561862, 13183042,
+                13792434, 14370928, 14942908, 15494356, 16045886, 16579952,
+                17083098, 17577980, 18066512, 18530036, 18988736, 19422774,
+                19852576, 20250260, 20638884, 21019068, 21385978, 21748132,
+                22085560, 22403576, 22709800, 23017374, 23301002, 23553432,
+                23824386, 24056018, 24271838, 24486842, 24685586, 24871376,
+                25054644, 25196824, 25362646, 25521042, 25652240, 25768780,
+                25877726, 25985252, 26068114, 26134084, 26193962, 26255878,
+                26274226, 26306128, 26302730, 26317506, 26316020, 26286668,
+                26268222, 26230330, 26197146, 26146488, 26075090, 25998468,
+                25909506, 25799002, 25673556, 25565654, 25428602, 25300042,
+                25150500, 24991880, 24816718, 24637116, 24461706, 24285032,
+                24081964, 23882128, 23658832, 23415816, 23179138, 22913860,
+                22663944, 22373258, 22071804, 21795744, 21519664, 21193786,
+                20885754, 20570808, 20244604])
+
+    else:
+    
+    
+    
+        Eff_mean = np.zeros(dimension)
+    
+        if background is None:
+
+            if statistics == "Uniform":
+            
+                  
+                background = generate_random_points_nd(n_points,s_l = 1,dimension = dimension, seed = 42)
+    
+            elif statistics == "Gaussian":
+    
+                background = generate_gaussian_points(Eff_mean, 
+                                                     Eff_cov,
+                                                     n_points, 
+                                                    dimensions = dimension,
+                                                    seed = random.randint(0,10000))
+                scatter_points(background)
+    
+        
+    
+        #Obtrain the distance distribution
+    
+        KDT_R = KDTree(background,
+                       metric = metric)
+    
+        counts_RR = KDT_R.two_point_correlation(background, 
+                                                bins)
+    
+        RR = np.diff(counts_RR)
+    
+        return RR
+        
+    
 
