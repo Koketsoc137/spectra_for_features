@@ -23,7 +23,6 @@ Summary statistics for the 2 point correlation function
 
 def norm(observed, errors = None, bins =[]):
     
-    norm = np.nansum([observed**2])
 
     #removel all invalid entries
     dr = bins[2]-bins[1]
@@ -35,7 +34,8 @@ def norm(observed, errors = None, bins =[]):
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
-    norm = np.nansum([dr*(observed)**2])
+    print(len(observed))
+    norm = np.nansum([(observed)**2])
 
     #
     norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
@@ -46,10 +46,12 @@ def norm(observed, errors = None, bins =[]):
 
 
 def two_point(data, 
-              bins, 
+              bins,
+    
               method='standard',
               data_R=None,
               precomputed_RR = None,
+              sub_sample_fraction =0.7,
               random_state=None):
     """Two-point correlation function
 
@@ -89,18 +91,27 @@ def two_point(data,
         raise ValueError("data should be 1D or 2D")
 
     n_samples, n_features = data.shape
-
+    
     # shuffle all but one axis to get background distribution
-    if data_R is None:
-        data_R = data.copy()
-        for i in range(n_features - 1):
-            rng.shuffle(data_R[:, i])
-    else:
-        data_R = np.asarray(data_R)
-        if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
-            raise ValueError('data_R must have same n_features as data')
 
-    factor = len(data_R) * 1. / len(data)
+    if precomputed_RR is None:
+        if data_R is None:
+            data_R = data.copy()
+            for i in range(n_features - 1):
+                rng.shuffle(data_R[:, i])
+        else:
+            data_R = np.asarray(data_R)
+            if (data_R.ndim != 2) or (data_R.shape[-1] != n_features):
+                raise ValueError('data_R must have same n_features as data')
+    
+        factor = len(data_R) * 1. / len(data)
+
+    else:
+        factor = 1/sub_sample_fraction
+
+
+
+    
 
     # Fast two-point correlation functions added in scikit-learn v. 0.14
     KDT_D = KDTree(data)
@@ -118,6 +129,11 @@ def two_point(data,
             RR = np.diff(counts_RR)
     else:
         RR = precomputed_RR
+
+
+
+
+
 
     # check for zero in the denominator
     RR_zero = (RR == 0)
@@ -154,7 +170,7 @@ def bootstrap_two_point(data,
                         return_bootstraps=False,
                         random_state=None,
                         data_R = None,
-                        sub_sample_fraction = 0.1,
+                        sub_sample_fraction =0.7,
                        flatten_reps = True,
                         representations =None,
                        precomputed_RR = None):
@@ -219,6 +235,7 @@ def bootstrap_two_point(data,
                                   bins = bins, 
                                   method=method,
                                   precomputed_RR=precomputed_RR,
+                                  sub_sample_fraction = sub_sample_fraction,
                                   random_state=rng)
                         
 
@@ -264,9 +281,9 @@ def correlate_and_plot(data = list,
     
     distances = np.linalg.norm(data, axis=1)
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
     
-    dist.scatter_points(data, alpha = 0.5)
+    print(max_dist)
 
     #Chopping up the space,importtant
     
@@ -308,7 +325,7 @@ def correlate_and_plot(data = list,
                                     data_R = background,
                                     precomputed_RR = precomputed_RR,
                                     Nbootstrap=Nbootstrap,
-                                    sub_sample_fraction =0.5,
+                                    sub_sample_fraction =0.7,
                                     method = 'standard',  
                                     return_bootstraps =True,
                                     flatten_reps = False,
@@ -335,7 +352,7 @@ def correlate_and_plot(data = list,
         plt.title(label)
         plt.savefig(fig_name+".png")
         plt.show()
-        return  NormScore
+        return corr,dcorr,NormScore
 
     elif return_corr:
         return corr,dcorr,NormScore

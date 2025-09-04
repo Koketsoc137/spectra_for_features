@@ -268,6 +268,7 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
                                                      n_points, 
                                                     dimensions = dimension,
                                                     seed = random.randint(0,10000))
+                scatter_points(background)
     
         
     
