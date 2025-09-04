@@ -21,7 +21,10 @@ import time
 Summary statistics for the 2 point correlation function
 """
 
-def norm(observed, errors = None, bins =[]):
+def norm(observed,
+         errors = None,
+        background_factor,
+         bins =[]):
     
 
     #removel all invalid entries
@@ -35,7 +38,7 @@ def norm(observed, errors = None, bins =[]):
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
     print(len(observed))
-    norm = np.nansum([(observed)**2])
+    norm = np.nansum([((background_factor/0.7)-o)**2 for o in observed])
 
     #
     norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
@@ -47,10 +50,10 @@ def norm(observed, errors = None, bins =[]):
 
 def two_point(data, 
               bins,
-    
               method='standard',
               data_R=None,
               precomputed_RR = None,
+              background_factor = 1,
               sub_sample_fraction =0.7,
               random_state=None):
     """Two-point correlation function
@@ -107,7 +110,7 @@ def two_point(data,
         factor = len(data_R) * 1. / len(data)
 
     else:
-        factor = 1/sub_sample_fraction
+        factor = background_factor/sub_sample_fraction
 
 
 
@@ -170,6 +173,7 @@ def bootstrap_two_point(data,
                         return_bootstraps=False,
                         random_state=None,
                         data_R = None,
+                        background_factor = 5,
                         sub_sample_fraction =0.7,
                        flatten_reps = True,
                         representations =None,
@@ -235,6 +239,7 @@ def bootstrap_two_point(data,
                                   bins = bins, 
                                   method=method,
                                   precomputed_RR=precomputed_RR,
+                                  background_factor = background_factor,
                                   sub_sample_fraction = sub_sample_fraction,
                                   random_state=rng)
                         
@@ -258,6 +263,7 @@ def correlate_and_plot(data = list,
                        representations = [],
                        precomputed_RR = None,
                        background = None,
+                       bacground_factor = 1,
                        label = "correlation on features",
                        fig_name ="tpcor",
                        return_corr = False,
@@ -312,7 +318,7 @@ def correlate_and_plot(data = list,
 
             precomputed_RR =  dist.precompute_RR(bins = bins,
                                                dimension = dimension,
-                                               n_points =len(data), 
+                                               n_points =background_factor*len(data), 
                                                metric = "euclidean",
                                                use_stored = False,
                                                background = None,
@@ -336,7 +342,10 @@ def correlate_and_plot(data = list,
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
 
-    NormScore = norm(corr, errors =dcorr, bins =bins)
+    NormScore = norm(corr,
+                     errors =dcorr,
+                     background_factor,
+                     bins =bins)
         
     
     print("Repley's K: ",NormScore)
