@@ -23,7 +23,7 @@ Summary statistics for the 2 point correlation function
 
 def norm(observed,
          errors = None,
-        background_factor,
+         background_factor = 10,
          bins =[]):
     
 
@@ -38,7 +38,7 @@ def norm(observed,
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
     print(len(observed))
-    norm = np.nansum([((background_factor/0.7)-o)**2 for o in observed])
+    norm = np.nansum([(o)**2 for o in observed])
 
     #
     norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
@@ -263,7 +263,7 @@ def correlate_and_plot(data = list,
                        representations = [],
                        precomputed_RR = None,
                        background = None,
-                       bacground_factor = 1,
+                       background_factor = 1,
                        label = "correlation on features",
                        fig_name ="tpcor",
                        return_corr = False,
@@ -287,7 +287,7 @@ def correlate_and_plot(data = list,
     
     distances = np.linalg.norm(data, axis=1)
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
     
     print(max_dist)
 
@@ -344,7 +344,7 @@ def correlate_and_plot(data = list,
 
     NormScore = norm(corr,
                      errors =dcorr,
-                     background_factor,
+                     background_factor= background_factor,
                      bins =bins)
         
     
