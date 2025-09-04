@@ -56,6 +56,7 @@ def two_point(data,
               background_factor = 1,
               sub_sample_fraction =0.7,
               random_state=None):
+    
     """Two-point correlation function
 
     Parameters
@@ -111,6 +112,8 @@ def two_point(data,
 
     else:
         factor = background_factor/sub_sample_fraction
+        print("Bakcground factor from twopoint", background_factor)
+
 
 
 
@@ -132,11 +135,6 @@ def two_point(data,
             RR = np.diff(counts_RR)
     else:
         RR = precomputed_RR
-
-
-
-
-
 
     # check for zero in the denominator
     RR_zero = (RR == 0)
@@ -175,9 +173,9 @@ def bootstrap_two_point(data,
                         data_R = None,
                         background_factor = 5,
                         sub_sample_fraction =0.7,
-                       flatten_reps = True,
+                        flatten_reps = True,
                         representations =None,
-                       precomputed_RR = None):
+                        precomputed_RR = None):
 
     
     """Bootstrapped two-point correlation function
@@ -329,6 +327,7 @@ def correlate_and_plot(data = list,
 
     bootstraps = bootstrap_two_point(data, bins, 
                                     data_R = background,
+                                    background_factor = background_factor,
                                     precomputed_RR = precomputed_RR,
                                     Nbootstrap=Nbootstrap,
                                     sub_sample_fraction =0.7,
