@@ -125,12 +125,12 @@ def generate_random_points_nd(n_points,s_l = 1,dimension = 2, seed = 42):
 
 
 
-def generate_gaussian_points(mean, cov, num_points, dimensions=2,seed = 42):
+def generate_gaussian_points(mean, cov, n_points, dimensions=2,seed = 42):
      ##points sampled from a gaussian distribution
     np.random.seed(seed)
 
     
-    points = np.random.multivariate_normal(mean, cov, num_points)
+    points = np.random.multivariate_normal(mean, cov, n_points)
 
     
     return points
@@ -268,7 +268,6 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
                                                      n_points, 
                                                     dimensions = dimension,
                                                     seed = random.randint(0,10000))
-                scatter_points(background)
     
         
     
