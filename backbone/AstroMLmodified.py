@@ -13,6 +13,8 @@ except:
 import math
 import skdim
 import time
+import importlib
+importlib.reload(dist)
 
 
 
@@ -349,11 +351,11 @@ def correlate_and_plot(data = list,
                                                    )
             else:
                 
-                background = generate_gaussian_points(Eff_mean = Eff_mean, 
-                                                     Eff_cov = Eff_cov,
-                                                     n_points = background_factor*len(data), 
-                                                    dimensions = dimension,
-                                                    seed = random.randint(0,10000))
+                background = dist.generate_gaussian_points(mean = Eff_mean, 
+                                                             cov = Eff_cov,
+                                                             n_points = background_factor*len(data), 
+                                                             dimensions = dimension,
+                                                             seed = random.randint(0,10000))
 
     bootstraps,poissonS_error = bootstrap_two_point(data, bins, 
                                     data_R = background,
