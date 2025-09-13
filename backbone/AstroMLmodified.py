@@ -48,7 +48,7 @@ def norm(observed,
     #
     norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])
 
-    print("Number of validi bins: ", number_of_bins))
+    print("Number of valid bins: ", number_of_bins)
 
     return (norm, norm_error)
 
@@ -306,17 +306,19 @@ def correlate_and_plot(data = list,
 
     #Chopping up the space,importtant
     
-    
+    """
     bins = np.linspace(min_dist,
                        max_dist, 
                        bin_number)
-    """
 
-    bins = np.logspace(-0.1,
+    """
+    base = 10
+    
+
+    bins = np.logspace(np.log(max_dist/bin_number)/np.log(base),
                        np.log10(max_dist),
                        bin_number,
                        base = 10)
-    """
     print(bins)
 
     
