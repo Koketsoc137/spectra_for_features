@@ -36,8 +36,7 @@ def norm(observed,
     
     observed = observed[valid]
     errors = errors[valid]
-    plt.plot(errors)
-    plt.show()
+
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
     norm = np.nansum([o**2 for b,o,e in zip(bins,observed,errors)])
@@ -46,9 +45,10 @@ def norm(observed,
     print("Background factor", background_factor)
    # print(observed-(background_factor/0.7))
 
-    print(bins)
     #
     norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])
+
+    print("Number of validi bins: ", number_of_bins))
 
     return (norm, norm_error)
 
