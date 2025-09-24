@@ -39,7 +39,7 @@ def norm(observed,
 
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
-    norm = np.nansum([o**2 for b,o,e in zip(bins,observed,errors)])
+    norm = np.nansum([(o**2) for b,o,e in zip(bins,observed,errors)])
 
     #norm = np.nansum([(o)**2 for o in observed])
     print("Background factor", background_factor)
@@ -266,7 +266,7 @@ def correlate_and_plot(data = list,
                        min_dist=0,
                        bin_number = 100,
                        plot = False, 
-                       Nbootstrap = 5,
+                       Nbootstrap = 1,
                        representations = [],
                        precomputed_RR = None,
                        background = None,
@@ -296,30 +296,30 @@ def correlate_and_plot(data = list,
     distances = np.linalg.norm(data, axis=1)
     
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 90)*2
-
-    data = data/max_dist
-
     max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
+
+    #data = data/max_dist
+
+    #max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
 
     print(max_dist)
 
     #Chopping up the space,importtant
     
-    """
     bins = np.linspace(min_dist,
                        max_dist, 
                        bin_number)
 
     """
     base = 10
-    
-
     bins = np.logspace(np.log(max_dist/bin_number)/np.log(base),
                        np.log10(max_dist),
                        bin_number,
                        base = 10)
     print(bins)
+
+    """
+
 
     
 
@@ -359,7 +359,12 @@ def correlate_and_plot(data = list,
                                                              dimensions = dimension,
                                                              seed = random.randint(0,10000))
 
-    bootstraps,poissonS_error = bootstrap_two_point(data, bins, 
+
+
+    
+
+    """
+    bootstraps,poisson_error = bootstrap_two_point(data, bins, 
                                     data_R = background,
                                     background_factor = background_factor,
                                     precomputed_RR = precomputed_RR,
@@ -371,9 +376,22 @@ def correlate_and_plot(data = list,
                                     representations = representations,
                                     )
 
+
+    
+
     
     corr = np.ma.masked_invalid(bootstraps).mean(0)
     dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+    """
+    corr, dcorr = two_point(data,
+                                  data_R = background,
+                                  bins = bins, 
+                                  method=method,
+                                  precomputed_RR=precomputed_RR,
+                                  background_factor = background_factor,
+                                  sub_sample_fraction =1,
+                                  random_state=42)
+                        
 
     NormScore = norm(corr,
                      errors =dcorr,
@@ -394,10 +412,9 @@ def correlate_and_plot(data = list,
         plt.title(label)
         plt.savefig(fig_name+".png")
         plt.show()
-        return corr,dcorr,NormScore
+        return NormScore
 
-    elif return_corr:
-        return corr,dcorr,NormScore
+
     else:
         return NormScore
 
