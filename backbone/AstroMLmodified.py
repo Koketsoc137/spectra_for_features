@@ -13,6 +13,8 @@ except:
 import math
 import skdim
 import time
+import importlib
+importlib.reload(dist)
 
 
 
@@ -35,14 +37,18 @@ def norm(observed,
     observed = observed[valid]
     errors = errors[valid]
 
-    number_of_bins  = np.count_nonzero(~np.isnan(observed))
 
-    norm = np.nansum([(o)**2 for o in observed])
-    print("Bakcground factor", background_factor)
+    number_of_bins  = np.count_nonzero(~np.isnan(observed))
+    norm = np.nansum([(o**2) for b,o,e in zip(bins,observed,errors)])/number_of_bins
+
+    #norm = np.nansum([(o)**2 for o in observed])
+    print("Background factor", background_factor)
    # print(observed-(background_factor/0.7))
 
     #
-    norm_error = np.sum([abs(2*dr*o*e) for o,e in zip(observed,errors)])
+    norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])
+
+    print("Number of valid bins: ", number_of_bins)
 
     return (norm, norm_error)
 
@@ -162,7 +168,8 @@ def two_point(data,
 
     corr[RR_zero] = np.nan
 
-    return corr
+    corr_err =  np.asarray([(1+cor)/math.sqrt(d) for cor,d in zip(corr,DD)])
+    return corr, corr_err
 
 
 def bootstrap_two_point(data, 
@@ -220,20 +227,16 @@ def bootstrap_two_point(data,
     elif data.ndim != 2:
         raise ValueError("data should be 1D or 2D")
 
-
     n_samples, n_features = data.shape
-
     
-
     bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
 
-        
     for i in range(Nbootstrap):
         
         stamp_1 = time.time()
         indices = random.sample(range(n_samples),int(n_samples*sub_sample_fraction))
 
-        bootstraps[i] = two_point(data[indices, :],
+        bootstraps[i], corr_err = two_point(data[indices, :],
                                   data_R = data_R,
                                   bins = bins, 
                                   method=method,
@@ -244,11 +247,11 @@ def bootstrap_two_point(data,
                         
 
     if return_bootstraps:
-        return bootstraps
+        return bootstraps,corr_err
     else:
         # use masked std dev in case of NaNs
         corr = np.ma.masked_invalid(bootstraps).mean(0)
-        corr_err = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+
         
         return corr, corr_err
 
@@ -258,11 +261,13 @@ def correlate_and_plot(data = list,
                        min_dist=0,
                        bin_number = 100,
                        plot = False, 
-                       Nbootstrap = 5,
+                       Nbootstrap = 1,
                        representations = [],
                        precomputed_RR = None,
                        background = None,
                        background_factor = 1,
+                       bootstrap = False,
+                       method = "standard",
                        label = "correlation on features",
                        fig_name ="tpcor",
                        return_corr = False,
@@ -286,8 +291,13 @@ def correlate_and_plot(data = list,
     
     distances = np.linalg.norm(data, axis=1)
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
     
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
+
+    #data = data/max_dist
+
+    #max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
+
     print(max_dist)
 
     #Chopping up the space,importtant
@@ -295,6 +305,17 @@ def correlate_and_plot(data = list,
     bins = np.linspace(min_dist,
                        max_dist, 
                        bin_number)
+
+    """
+    base = 10
+    bins = np.logspace(np.log(max_dist/bin_number)/np.log(base),
+                       np.log10(max_dist),
+                       bin_number,
+                       base = 10)
+    print(bins)
+
+    """
+
 
     
 
@@ -312,43 +333,76 @@ def correlate_and_plot(data = list,
             length, dimension = data.shape
         
             #Percentile of the scaled data
+
+            if method == "Standard":
             
 
 
-            precomputed_RR =  dist.precompute_RR(bins = bins,
-                                               dimension = dimension,
-                                               n_points =background_factor*len(data), 
-                                               metric = "euclidean",
-                                               use_stored = False,
-                                               background = None,
-                                               statistics = "Gaussian",
-                                               Eff_cov = Eff_cov,
-                                               )
-    
+                precomputed_RR =  dist.precompute_RR(bins = bins,
+                                                   dimension = dimension,
+                                                   n_points =background_factor*len(data), 
+                                                   metric = "euclidean",
+                                                   use_stored = False,
+                                                   background = None,
+                                                   statistics = "Gaussian",
+                                                   Eff_cov = Eff_cov,
+                                                   )
+            else:
+                
+                background = dist.generate_gaussian_points(mean = Eff_mean, 
+                                                             cov = Eff_cov,
+                                                             n_points = background_factor*len(data), 
+                                                             dimensions = dimension,
+                                                             seed = random.randint(0,10000))
 
-    bootstraps = bootstrap_two_point(data, bins, 
-                                    data_R = background,
-                                    background_factor = background_factor,
-                                    precomputed_RR = precomputed_RR,
-                                    Nbootstrap=Nbootstrap,
-                                    sub_sample_fraction =0.7,
-                                    method = 'standard',  
-                                    return_bootstraps =True,
-                                    flatten_reps = False,
-                                    representations = representations,
-                                    )
+
 
     
-    corr = np.ma.masked_invalid(bootstraps).mean(0)
-    dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+    if bootstrap:
+        bootstraps,poisson_error = bootstrap_two_point(data, bins, 
+                                        data_R = background,
+                                        background_factor = background_factor,
+                                        precomputed_RR = precomputed_RR,
+                                        Nbootstrap=Nbootstrap,
+                                        sub_sample_fraction =0.8,
+                                        method = method,  
+                                        return_bootstraps =True,
+                                        flatten_reps = False,
+                                        representations = representations,
+                                        )
+
+
+    
+
+    
+        corr = np.ma.masked_invalid(bootstraps).mean(0)
+        dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+
+    else:
+        #Error returned here is poisson error
+        corr, dcorr = two_point(data,
+                                      data_R = background,
+                                      bins = bins, 
+                                      method=method,
+                                      precomputed_RR=precomputed_RR,
+                                      background_factor = background_factor,
+                                      sub_sample_fraction =1,
+                                      random_state=42)
+
+                        
 
     NormScore = norm(corr,
                      errors =dcorr,
                      background_factor= background_factor,
                      bins =bins)
+
+    
         
     
     print("Repley's K: ",NormScore)
+
+    if return_corr:
+        return corr,dcorr, NormScore
 
     
     if plot:
@@ -361,10 +415,11 @@ def correlate_and_plot(data = list,
         plt.title(label)
         plt.savefig(fig_name+".png")
         plt.show()
-        return corr,dcorr,NormScore
+        return NormScore
 
-    elif return_corr:
-        return corr,dcorr,NormScore
+    
+
+
     else:
         return NormScore
 
@@ -381,6 +436,7 @@ def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = Fal
             if verbose:
                 print("ID :",ID)
         return np.mean(IDs, axis = 0),np.std(IDs,axis = 0, ddof=1)
+
 
 
 
