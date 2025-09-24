@@ -283,5 +283,4 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
     
         return RR
         
-    
 
