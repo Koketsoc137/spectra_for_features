@@ -39,14 +39,14 @@ def norm(observed,
 
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
-    norm = np.nansum([(o**2) for b,o,e in zip(bins,observed,errors)])
+    norm = np.nansum([(o) for b,o,e in zip(bins,observed,errors)])
 
     #norm = np.nansum([(o)**2 for o in observed])
     print("Background factor", background_factor)
    # print(observed-(background_factor/0.7))
 
     #
-    norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])
+    norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])/number_of_bins
 
     print("Number of valid bins: ", number_of_bins)
 
@@ -296,11 +296,11 @@ def correlate_and_plot(data = list,
     distances = np.linalg.norm(data, axis=1)
     
     
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
+
+    data = data/max_dist
+
     max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
-
-    #data = data/max_dist
-
-    #max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
 
     print(max_dist)
 
