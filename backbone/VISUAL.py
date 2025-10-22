@@ -138,14 +138,20 @@ def pmap(dataset,scatter = False, dim = 2):
     return p_embedded
 
 
-def  umap(dataset,scatter = True,name = "UMAP", dim = 2, min_dist = 0.1, n_neighbors = 20,alpha = 0.2):
+def  umap(dataset,scatter = True
+          ,name = "UMAP",
+          dim = 2, 
+          min_dist = 0.1, 
+          n_neighbors = 20,
+          alpha = 0.2,
+         random_state = None):
     start = time.time()
     reducer = UMAP.UMAP(a=None, angular_rp_forest=False, b=None,
      force_approximation_algorithm=False, init='spectral', learning_rate=1.0,
      local_connectivity=1.0, low_memory=False, metric='euclidean',
      metric_kwds=None, min_dist=min_dist, n_components=dim, n_epochs=None,
      n_neighbors= n_neighbors, negative_sample_rate=5, output_metric='euclidean',
-     output_metric_kwds=None, random_state=None, repulsion_strength=1.0,
+     output_metric_kwds=None, random_state= random_state, repulsion_strength=1.0,
      set_op_mix_ratio=1.0, spread=1.0, target_metric='categorical',
      target_metric_kwds=None, target_n_neighbors=-1, target_weight=0.5,
      transform_queue_size=4.0, transform_seed=4, unique=False, verbose=False)
