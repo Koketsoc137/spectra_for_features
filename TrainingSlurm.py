@@ -8,7 +8,7 @@ import backbone.Custom as cust
 import backbone.VISUAL as viz
 import importlib
 import matplotlib.pyplot as plt
-import backbone.AstroMLmod as AstroMLmod
+import backbone.AstroMLmodified as AstroMLmod
 import numpy as np
 import backbone.TwoNN as TwoNN
 import time
@@ -58,7 +58,7 @@ def galaxyzoo10(batch_size = 256):
 
     # To convert to desirable type
     labels = labels.astype(np.int64)
-    #labels = perturb_list_by_swapping(labels, percentage=30)
+    labels = perturb_list_by_swapping(labels, percentage=30)
     images = images.astype(np.float16)
     
 
@@ -107,6 +107,53 @@ def evaluate(model, train_loader,test_loader, device):
     return train_accuracy, test_accuracy
 
 
+def TPCF_score(representations,epoch, sub_sample = 0.5, Nbootstrap = 5):
+    representations = np.array([arr.tolist() for arr in representations])
+    norm_score = []
+
+    for i in range(Nbootstrap):
+        #viz.shade(val_flat, predictions = [0]*len(val_flat))
+        indices = random.sample(range(len(representations)),int(len(representations)*sub_sample))
+        val_flat_sample = representations[indices,:]
+    
+
+
+        plot = False
+        scatter = False
+        if i ==Nbootstrap:
+            plot = True
+            scatter = True
+            
+        val_flat_umap = viz.umap(val_flat_sample,
+                            scatter = scatter,
+                            dim = 2, 
+                            min_dist = 0.8,
+                            n_neighbors = 50,
+                            epcoh = str(epoch),
+                            random_state = random.randint(0,1000),
+                            alpha = 0.2)
+
+        
+        
+        norm_score_ = AstroMLmod.correlate_and_plot(val_flat_umap,
+                                                        min_dist = 0.0,
+                                                        max_dist =1.5,
+                                                        label = "Correlation on flat manifold for epoch:"+str(epoch),
+                                                        fig_name = "plots/2PCR@Epoch: "+str(epoch),
+                                                        precomputed_RR = None,
+                                                        bin_number = 100,
+                                                        method = "standard",
+                                                        plot = plot,
+                                                        background_factor = 1,
+                                                        representations = [])
+
+        norm_score.append(norm_score_[0])
+
+
+
+    return (np.ma.masked_invalid(norm_score).mean(0),np.ma.masked_invalid(norm_score).std(0, ddof=1))
+
+
 
 
 def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_new", batch_size=128, device='cuda'):
@@ -152,45 +199,21 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     train_accuracy.append(train)
     #Faltten the manifold
     epoch = 0
-    #val_flat = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
-    val_flat = viz.pca(test_representations,n_components = 3)
-    pkl_filename = "plots/val_3d"+str(epoch)+".csv"
-    with open(pkl_filename, 'wb') as file:
-        pickle.dump(val_flat,file)
 
-    print(len(val_flat))
-    #precomputed = AstroMLmod.precompute_gaussian_RR(dimension = 2,n_points =50000)
-    precomputed = np.array([    4542,    31862,    84128,   161126,   262318,   388700,
-                                 537018,   703596,   892606,  1104392,  1331562,  1581230,
-                                1840382,  2120810,  2415330,  2730464,  3052430,  3392436,
-                                3746410,  4112252,  4493738,  4868904,  5266998,  5671720,
-                                6084012,  6505856,  6939498,  7369126,  7815928,  8252310,
-                                8715864,  9164780,  9626470, 10083890, 10549170, 11026628,
-                               11490280, 11958964, 12416746, 12901382, 13353428, 13826102,
-                               14297242, 14758236, 15216478, 15669760, 16132798, 16578098,
-                               17026402, 17458426, 17890534, 18316348, 18749662, 19154400,
-                               19594426, 19982594, 20377332, 20756950, 21136212, 21521568,
-                               21883426, 22237814, 22584688, 22905920, 23237546, 23544154,
-                               23854464, 24145680, 24438678, 24701290, 24952718, 25193714,
-                               25432696, 25664796, 25877190, 26073886, 26249768, 26435492,
-                               26574956, 26721584, 26871826, 26985336, 27096642, 27170166,
-                               27266334, 27299938, 27365040, 27404498, 27420596, 27412966,
-                               27412792, 27368596, 27348310, 27288196, 27229868, 27164724,
-                               27027756, 26912650, 26793174])
+
+    pkl_filename = "plots/bad_test_representations"+str(epoch)+".csv"
+    with open(pkl_filename, 'wb') as file:
+        pickle.dump(test_representations,file)
+            
+    pkl_filename = "plots/bad_test_labels"+str(epoch)+".csv"
+    with open(pkl_filename, 'wb') as file:
+        pickle.dump(test_labels,file)
 
     
-    chi_score, norm_score = AstroMLmod.correlate_and_plot(val_flat,
-                                                        min_dist = 0.0,
-                                                        max_dist =1.5,
-                                                        label = "Correlation on flat manifold for epoch:"+str(epoch),
-                                                        fig_name = "plots/2PCR@Epoch: "+str(epoch),
-                                                        precomputed_RR = precomputed,
-                                                        representations = test_representations
-                                                             )
-    #Append to list for later
+    norm_score = TPCF_score(test_representations, epoch = epoch)
 
     norm_scores.append(norm_score)
-    chi_scores.append(chi_score)
+    #chi_scores.append(chi_score)
 
         
     fig = plt.figure(dpi = 300)
@@ -234,30 +257,22 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
 
 
         #Faltten the manifold
-        val_umap = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
+        #val_umap = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
 
-
-
-        pkl_filename = "plots/val_3d"+str(epoch)+".csv"
+        pkl_filename = "plots/bad_test_representations"+str(epoch)+".csv"
         with open(pkl_filename, 'wb') as file:
-            pickle.dump(val_flat,file)
+            pickle.dump(test_representations,file)
+            
+        pkl_filename = "plots/bad_test_labels"+str(epoch)+".csv"
+        with open(pkl_filename, 'wb') as file:
+            pickle.dump(test_labels,file)
 
             
-        val_flat = viz.pca(test_representations,n_components = 3)
-
-
-        chi_score, norm_score =AstroMLmod.correlate_and_plot(val_flat,
-                                                                      min_dist = 0.0,
-                                                                      max_dist =1.5,
-                                                                      label = "Correlation on flat manifold for epoch:"+str(epoch),
-                                                                      fig_name = "plots/2PCR@Epoch: "+str(epoch),
-                                                                      precomputed_RR = precomputed,
-                                                                     representations = test_representations)
-
+        
+        norm_score = TPCF_score(test_representations, epoch = epoch)
 
         norm_scores.append(norm_score)
-        chi_scores.append(chi_score)
-
+        #chi_scores.append(chi_score)
 
 
         validation_accuracy.append(val)
@@ -279,19 +294,19 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
         plt.savefig("Training_val.png")       
 
         if epoch%10 ==0:
-            pkl_filename = "reply_pca_chi_scores.csv"
+            pkl_filename = "bad_reply_pca_chi_scores.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(chi_scores,file)
                 
-            pkl_filename = "reply_pca_norm_scores.csv"
+            pkl_filename = "bad_reply_pca_norm_scores.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(norm_scores,file)
                 
-            pkl_filename = "reply_pca_chi_validation.csv"
+            pkl_filename = "bad_reply_pca_chi_validation.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(validation_accuracy,file)
                 
-            pkl_filename = "reply_pca_chi_train.csv"
+            pkl_filename = "bad_reply_pca_chi_train.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(train_accuracy,file) 
 
