@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from sklearn.neighbors import KDTree
+from sklearn.cluster import KMeans
+
 
 #matplotlib.rc('font', **font)
 
@@ -210,6 +212,14 @@ def plot_autocorrelation_2d(separation, correlation,title = "Correlation"):
     plt.grid(False)
     plt.show()
 
+def kmeans(data, 
+           n_clusters = 2):
+    
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10) # Example with 3 clusters
+    
+    kmeans.fit(data)
+    
+    return kmeans.labels_
 
 
 def precompute_RR(bins = np.linspace(0, 1.5, 100),
@@ -283,5 +293,4 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
     
         return RR
         
-    
 

@@ -265,7 +265,8 @@ def correlate_and_plot(data = list,
                        max_dist = 1.5,
                        min_dist=0,
                        bin_number = 100,
-                       plot = False, 
+                       plot = False,
+                       bootstrap = True,
                        Nbootstrap = 1,
                        representations = [],
                        precomputed_RR = None,
@@ -296,7 +297,9 @@ def correlate_and_plot(data = list,
     distances = np.linalg.norm(data, axis=1)
     
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 95)*2
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 100)*2
+
+    print(max_dist)
 
     data = data/max_dist
 
@@ -309,16 +312,6 @@ def correlate_and_plot(data = list,
     bins = np.linspace(min_dist,
                        max_dist, 
                        bin_number)
-
-    """
-    base = 10
-    bins = np.logspace(np.log(max_dist/bin_number)/np.log(base),
-                       np.log10(max_dist),
-                       bin_number,
-                       base = 10)
-    print(bins)
-
-    """
 
 
     
@@ -363,35 +356,36 @@ def correlate_and_plot(data = list,
 
     
 
-    """
-    bootstraps,poisson_error = bootstrap_two_point(data, bins, 
-                                    data_R = background,
-                                    background_factor = background_factor,
-                                    precomputed_RR = precomputed_RR,
-                                    Nbootstrap=Nbootstrap,
-                                    sub_sample_fraction =0.8,
-                                    method = method,  
-                                    return_bootstraps =True,
-                                    flatten_reps = False,
-                                    representations = representations,
-                                    )
-
-
+    if bootstrap:
+        bootstraps,poisson_error = bootstrap_two_point(data, bins, 
+                                        data_R = background,
+                                        background_factor = background_factor,
+                                        precomputed_RR = precomputed_RR,
+                                        Nbootstrap=Nbootstrap,
+                                        sub_sample_fraction =0.8,
+                                        method = method,  
+                                        return_bootstraps =True,
+                                        flatten_reps = False,
+                                        representations = representations,
+                                        )
     
-
     
-    corr = np.ma.masked_invalid(bootstraps).mean(0)
-    dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
-    """
-    corr, dcorr = two_point(data,
-                                  data_R = background,
-                                  bins = bins, 
-                                  method=method,
-                                  precomputed_RR=precomputed_RR,
-                                  background_factor = background_factor,
-                                  sub_sample_fraction =1,
-                                  random_state=42)
-                        
+        
+    
+        
+        corr = np.ma.masked_invalid(bootstraps).mean(0)
+        dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
+
+    else:
+        corr, dcorr = two_point(data,
+                                      data_R = background,
+                                      bins = bins, 
+                                      method=method,
+                                      precomputed_RR=precomputed_RR,
+                                      background_factor = background_factor,
+                                      sub_sample_fraction =1,
+                                      random_state=42)
+                            
 
     NormScore = norm(corr,
                      errors =dcorr,
@@ -416,7 +410,10 @@ def correlate_and_plot(data = list,
 
 
     else:
-        return NormScore
+        if return_corr:
+            return corr,dcorr,NormScore
+        else:
+            return NormScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
