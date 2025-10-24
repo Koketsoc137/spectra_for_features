@@ -266,7 +266,7 @@ def correlate_and_plot(data = list,
                        min_dist=0,
                        bin_number = 100,
                        plot = False,
-                       Bootstrap = True,
+                       bootstrap = True,
                        Nbootstrap = 1,
                        representations = [],
                        precomputed_RR = None,
@@ -410,7 +410,10 @@ def correlate_and_plot(data = list,
 
 
     else:
-        return NormScore
+        if return_corr:
+            return corr,dcorr,NormScore
+        else:
+            return NormScore
 
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
