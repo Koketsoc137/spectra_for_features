@@ -39,14 +39,14 @@ def norm(observed,
 
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
-    norm = np.nansum([(o**2) for b,o,e in zip(bins,observed,errors)])/number_of_bins
+    norm = np.nansum([(o) for b,o,e in zip(bins,observed,errors)])
 
     #norm = np.nansum([(o)**2 for o in observed])
     print("Background factor", background_factor)
    # print(observed-(background_factor/0.7))
 
     #
-    norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])
+    norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])/number_of_bins
 
     print("Number of valid bins: ", number_of_bins)
 
@@ -227,10 +227,15 @@ def bootstrap_two_point(data,
     elif data.ndim != 2:
         raise ValueError("data should be 1D or 2D")
 
+
     n_samples, n_features = data.shape
+
     
+
     bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
 
+
+        
     for i in range(Nbootstrap):
         
         stamp_1 = time.time()
@@ -260,13 +265,13 @@ def correlate_and_plot(data = list,
                        max_dist = 1.5,
                        min_dist=0,
                        bin_number = 100,
-                       plot = False, 
+                       plot = False,
+                       Bootstrap = True,
                        Nbootstrap = 1,
                        representations = [],
                        precomputed_RR = None,
                        background = None,
                        background_factor = 1,
-                       bootstrap = False,
                        method = "standard",
                        label = "correlation on features",
                        fig_name ="tpcor",
@@ -292,11 +297,13 @@ def correlate_and_plot(data = list,
     distances = np.linalg.norm(data, axis=1)
     
     
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 100)*2
+
+    print(max_dist)
+
+    data = data/max_dist
+
     max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
-
-    #data = data/max_dist
-
-    #max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
 
     print(max_dist)
 
@@ -305,16 +312,6 @@ def correlate_and_plot(data = list,
     bins = np.linspace(min_dist,
                        max_dist, 
                        bin_number)
-
-    """
-    base = 10
-    bins = np.logspace(np.log(max_dist/bin_number)/np.log(base),
-                       np.log10(max_dist),
-                       bin_number,
-                       base = 10)
-    print(bins)
-
-    """
 
 
     
@@ -358,6 +355,7 @@ def correlate_and_plot(data = list,
 
 
     
+
     if bootstrap:
         bootstraps,poisson_error = bootstrap_two_point(data, bins, 
                                         data_R = background,
@@ -370,16 +368,15 @@ def correlate_and_plot(data = list,
                                         flatten_reps = False,
                                         representations = representations,
                                         )
-
-
     
-
     
+        
+    
+        
         corr = np.ma.masked_invalid(bootstraps).mean(0)
         dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
 
     else:
-        #Error returned here is poisson error
         corr, dcorr = two_point(data,
                                       data_R = background,
                                       bins = bins, 
@@ -388,21 +385,15 @@ def correlate_and_plot(data = list,
                                       background_factor = background_factor,
                                       sub_sample_fraction =1,
                                       random_state=42)
-
-                        
+                            
 
     NormScore = norm(corr,
                      errors =dcorr,
                      background_factor= background_factor,
                      bins =bins)
-
-    
         
     
     print("Repley's K: ",NormScore)
-
-    if return_corr:
-        return corr,dcorr, NormScore
 
     
     if plot:
@@ -416,8 +407,6 @@ def correlate_and_plot(data = list,
         plt.savefig(fig_name+".png")
         plt.show()
         return NormScore
-
-    
 
 
     else:
@@ -436,7 +425,6 @@ def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = Fal
             if verbose:
                 print("ID :",ID)
         return np.mean(IDs, axis = 0),np.std(IDs,axis = 0, ddof=1)
-
 
 
 
