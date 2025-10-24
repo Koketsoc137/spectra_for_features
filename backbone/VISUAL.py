@@ -1,5 +1,5 @@
 #Functions
-#import hdbscan
+import hdbscan
 import umap.umap_ as UMAP
 #import pacmap
 from sklearn import metrics
@@ -136,12 +136,14 @@ def pmap(dataset,scatter = False, dim = 2):
     return p_embedded
 
 
-def  umap(dataset,scatter = True
-          ,name = "UMAP",
+def  umap(dataset,
+          scatter = True,
           dim = 2, 
+            name = "UMAMP embedding",
           min_dist = 0.1, 
           n_neighbors = 20,
           alpha = 0.2,
+          epcoh = 0,
          random_state = None):
     start = time.time()
     reducer = UMAP.UMAP(a=None, angular_rp_forest=False, b=None,
@@ -159,7 +161,7 @@ def  umap(dataset,scatter = True
 
         #Save 2D represenatation
 
-    pkl_filename = "nn"+str(n_neighbors)+"md"+str(min_dist)+".txt"
+    pkl_filename = "Umap on "+name+".csv"
     #Load from file
     print("Saved : ", pkl_filename)
     with open(pkl_filename, 'wb') as file:
@@ -554,6 +556,41 @@ def pca(data = list,n_components = 500, variance = 0.97,return_all = False,verbo
         return components
     else:
         return components[:,0:i]
+
+
+def pca_slices(data = list,
+               n_components = 500,
+               sample_first_2_comp_to_n = 10,
+               variance = 0.97,
+               return_all = False,
+               verbose = True, 
+               return_variance_dimension = False):
+
+    pca = IncrementalPCA(n_components =n_components)
+    pca.fit(data)
+    components  = pca.transform(data)
+    var = pca.explained_variance_ratio_
+
+    
+
+    prefered_variance = 0;
+
+    #Here I decide the number of components to keep, using the variance
+
+    i = 0
+    while prefered_variance < variance and i <n_components:
+        prefered_variance += var[i]
+        i +=1
+    if verbose:
+        print("Variance to keep : ",prefered_variance," number of components : ",i )
+    if return_variance_dimension:
+        return prefered_variance,i
+    if return_all:
+        return components
+    else:
+        indices  =random.sample(range(n_components), 2)#
+        
+        return components[:,indices]
 
 
 
