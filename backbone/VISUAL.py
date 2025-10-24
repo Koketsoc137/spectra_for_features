@@ -1,5 +1,5 @@
 #Functions
-import hdbscan
+#import hdbscan
 import umap.umap_ as UMAP
 #import pacmap
 from sklearn import metrics
@@ -221,7 +221,7 @@ def shade(embedded_dataset,
           faint_class = -1, 
           limits = None, 
          hard_coloring = False):
-    colours = ['black','blue','purple','yellow','red','green','orange','cyan','magenta']*100
+    colours = ['C0','C1','C2','C3','C4','C5','C6','C7','C8']*100
     import matplotlib.cm as cm
     #colours = cm.rainbow(np.linspace(0, 1, numof_class))
     #First we split the dataset according predicted classes

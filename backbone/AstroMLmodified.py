@@ -303,7 +303,7 @@ def correlate_and_plot(data = list,
 
     data = data/max_dist
 
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
+    max_dist = np.percentile(np.linalg.norm(data, axis=1), 68)*2
 
     print(max_dist)
 
@@ -322,7 +322,7 @@ def correlate_and_plot(data = list,
     if precomputed_RR is None:
 
         if verbose:
-            print("Computing background and RR distributions: will be slower")
+            print("Computing background and RR distributions")
 
     
             Eff_cov = np.cov(data,rowvar = False)
@@ -357,6 +357,7 @@ def correlate_and_plot(data = list,
     
 
     if bootstrap:
+        print("Computing Bootstrap 2PCFs")
         bootstraps,poisson_error = bootstrap_two_point(data, bins, 
                                         data_R = background,
                                         background_factor = background_factor,
@@ -377,6 +378,8 @@ def correlate_and_plot(data = list,
         dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
 
     else:
+        print("Computing 2PCF")
+
         corr, dcorr = two_point(data,
                                       data_R = background,
                                       bins = bins, 
@@ -386,14 +389,14 @@ def correlate_and_plot(data = list,
                                       sub_sample_fraction =1,
                                       random_state=42)
                             
-
+    
     NormScore = norm(corr,
                      errors =dcorr,
                      background_factor= background_factor,
                      bins =bins)
         
     
-    print("Repley's K: ",NormScore)
+    print("Structure: ",NormScore)
 
     
     if plot:
