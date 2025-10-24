@@ -77,7 +77,9 @@ def reduce(dataset,n_components):
     print(time.time() - start)
     return pca
 
-def Similarity_index(labels,labels2):
+    
+
+def similarity_index(labels,labels2):
     
     
     similarity = metrics.rand_score(labels2,labels)
