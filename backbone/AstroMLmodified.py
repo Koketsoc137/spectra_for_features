@@ -39,7 +39,7 @@ def norm(observed,
 
 
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
-    norm = np.nansum([(o) for b,o,e in zip(bins,observed,errors)])
+    norm = np.nansum([o for b,o,e in zip(bins,observed,errors)])
 
     #norm = np.nansum([(o)**2 for o in observed])
     print("Background factor", background_factor)
@@ -308,10 +308,18 @@ def correlate_and_plot(data = list,
     print(max_dist)
 
     #Chopping up the space,importtant
+    base = 10
+    """
+    bins = np.logspace(np.log10(max_dist/bin_number)/np.log10(base),
+                       np.log10(max_dist),
+                       bin_number,
+                       base = base)
     
+    """
     bins = np.linspace(min_dist,
                        max_dist, 
                        bin_number)
+    
 
 
     
@@ -369,9 +377,6 @@ def correlate_and_plot(data = list,
                                         representations = representations,
                                         )
     
-    
-        
-    
         
         corr = np.ma.masked_invalid(bootstraps).mean(0)
         dcorr = np.asarray(np.ma.masked_invalid(bootstraps).std(0, ddof=1))
@@ -415,6 +420,40 @@ def correlate_and_plot(data = list,
         else:
             return NormScore
 
+
+def TPCF_score(representations,epoch = 0, sub_sample = 0.3, Nbootstrap = 5):
+    representations = np.array([arr.tolist() for arr in representations])
+    norm_score = []
+
+    for i in range(Nbootstrap):
+        #viz.shade(val_flat, predictions = [0]*len(val_flat))
+        indices = random.sample(range(len(representations)),int(len(representations)*sub_sample))
+        val_flat_sample =  viz.pca(representations[indices,:],n_components = 2)
+    
+
+        plot = False
+        scatter = False
+
+        
+        norm_score_ = correlate_and_plot(val_flat_sample,
+                                        min_dist = 0.0,
+                                        max_dist =1.5,
+                                        label = "Correlation on flat manifold for epoch:"+str(epoch),
+                                        fig_name = "plots/2PCR@Epoch: "+str(epoch),
+                                        precomputed_RR = None,
+                                        bin_number = 100,
+                                        method = "standard",
+                                        bootstrap = False,
+                                        plot = plot,
+                                        background_factor = 1,
+                                        representations = [])
+
+        norm_score.append(norm_score_[0])
+
+
+    return (round(np.ma.masked_invalid(norm_score).mean(0),2),round(np.ma.masked_invalid(norm_score).std(0, ddof=1),2))
+
+            
 
 def id_score(representations,SubSampleFraction = 0.3, Nsamples = 5,verbose = False):
         twonn = skdim.id.TwoNN()
