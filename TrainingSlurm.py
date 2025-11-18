@@ -28,7 +28,6 @@ def get_data_loaders(Dir = "some/directory", batch_size = 32):
 
     dataset_split = cust.train_val_dataset(transformed_dataset, val_split=0.005)
     
-
     train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True)
 
     test_loader = torch.utils.data.DataLoader(dataset_split['val'], batch_size=batch_size, shuffle=True)
@@ -58,7 +57,7 @@ def galaxyzoo10(batch_size = 256):
 
     # To convert to desirable type
     labels = labels.astype(np.int64)
-    labels = perturb_list_by_swapping(labels, percentage=30)
+    # labels = perturb_list_by_swapping(labels, percentage=30)
     images = images.astype(np.float16)
     
 
@@ -74,13 +73,19 @@ def galaxyzoo10(batch_size = 256):
 
     return train_loader, test_loader
     
-def evaluate(model, train_loader,test_loader, device):
+def evaluate(model, train_loader,test_loader,criterion,device):
             
     correct, total = 0, 0
+    train_loss = 0
     with torch.no_grad():
         for images, labels,_ in train_loader:
             images, labels = images.to(device), labels.to(device)
+
             outputs = model(images)
+
+            #Computing loss
+            train_loss += criterion(outputs,labels)
+            
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
@@ -90,10 +95,14 @@ def evaluate(model, train_loader,test_loader, device):
     train_accuracy = 100 * correct / total
 
     correct, total = 0, 0
+    val_loss = 0
     with torch.no_grad():
         for images, labels,_ in test_loader:
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
+            #Compute the loss
+            val_loss += criterion(outputs,labels)
+
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
@@ -104,59 +113,11 @@ def evaluate(model, train_loader,test_loader, device):
     #evaluate(model, train_loader, test_loader, device)
 
 
-    return train_accuracy, test_accuracy
-
-
-def TPCF_score(representations,epoch, sub_sample = 0.5, Nbootstrap = 5):
-    representations = np.array([arr.tolist() for arr in representations])
-    norm_score = []
-
-    for i in range(Nbootstrap):
-        #viz.shade(val_flat, predictions = [0]*len(val_flat))
-        indices = random.sample(range(len(representations)),int(len(representations)*sub_sample))
-        val_flat_sample = representations[indices,:]
-    
-
-
-        plot = False
-        scatter = False
-        if i ==Nbootstrap:
-            plot = True
-            scatter = True
-            
-        val_flat_umap = viz.umap(val_flat_sample,
-                            scatter = scatter,
-                            dim = 2, 
-                            min_dist = 0.8,
-                            n_neighbors = 50,
-                            epcoh = str(epoch),
-                            random_state = random.randint(0,1000),
-                            alpha = 0.2)
-
-        
-        
-        norm_score_ = AstroMLmod.correlate_and_plot(val_flat_umap,
-                                                        min_dist = 0.0,
-                                                        max_dist =1.5,
-                                                        label = "Correlation on flat manifold for epoch:"+str(epoch),
-                                                        fig_name = "plots/2PCR@Epoch: "+str(epoch),
-                                                        precomputed_RR = None,
-                                                        bin_number = 100,
-                                                        method = "standard",
-                                                        plot = plot,
-                                                        background_factor = 1,
-                                                        representations = [])
-
-        norm_score.append(norm_score_[0])
+    return train_accuracy, test_accuracy, train_loss, val_loss
 
 
 
-    return (np.ma.masked_invalid(norm_score).mean(0),np.ma.masked_invalid(norm_score).std(0, ddof=1))
-
-
-
-
-def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_new", batch_size=128, device='cuda'):
+def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_new", batch_size=64, device='cuda'):
 
     fig = plt.figure(dpi = 300)
     plt.style.use("default")
@@ -177,44 +138,54 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     model.classifier[1].weight.data.normal_(0,0.01)
     model = model.to(device)
 
-    intrinsic_dimension = []
-    validation_accuracy = []
-    train_accuracy = []
-    norm_scores = []
-    chi_scores = []
+    ID_scores = []
+    train_val_accuracy_loss = []
+    TPCF_scores = []
 
-    #Obtain train and test accuracies
-    
-    train, val = evaluate(model, train_loader, test_loader, device)
-
-    #get representatations
-    test_representations, test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
-
-    #conpute the id_score
-    #id_score,std = AstroMLmod.id_score(test_representations)
-    
-    #intrinsic_dimension.append((id_score,std))
-    
-    validation_accuracy.append(val)
-    train_accuracy.append(train)
-    #Faltten the manifold
     epoch = 0
 
 
-    pkl_filename = "plots/bad_test_representations"+str(epoch)+".csv"
-    with open(pkl_filename, 'wb') as file:
-        pickle.dump(test_representations,file)
-            
-    pkl_filename = "plots/bad_test_labels"+str(epoch)+".csv"
-    with open(pkl_filename, 'wb') as file:
-        pickle.dump(test_labels,file)
+    #Obtain train and test accuracies
+    
+    train, val,train_loss,val_loss = evaluate(model, train_loader, test_loader,criterion, device)
+
+    train_val_accuracy_loss.append((train, val,train_loss,val_loss))
+
+
+    #get representatations
+    test_representations, test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
+    train_representations,train_labels = cust.get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
+
+
+    #conpute the id_score
+    id_score_test,std_test = AstroMLmod.id_score(test_representations)
+    id_score_train,std_train = AstroMLmod.id_score(train_representations)
+    
+    ID_scores.append((id_score_test,std_test,id_score_train,std_train))
+
+    #The two pont correlatiion function scores on training and test data
+
+    TPCF_score_val = AstroMLmod.TPCF_score(test_representations, epoch = epoch)
+    TPCF_score_train = AstroMLmod.TPCF_score(train_representations, epoch = epoch)
+
+
+    TPCF_scores.append((TPCF_score_val,TPCF_score_train))
 
     
-    norm_score = TPCF_score(test_representations, epoch = epoch)
+    #intrinsic_dimension.append((id_score,std))
 
-    norm_scores.append(norm_score)
-    #chi_scores.append(chi_score)
+    
+    #Faltten the manifold
 
+    pkl_filename = "plots/normal_normal_test_representations_labels"+str(epoch)+".csv"
+    with open(pkl_filename, 'wb') as file:
+        pickle.dump((test_representations,test_labels),file)
+            
+    pkl_filename = "plots/normal_normal_train_representations_labels"+str(epoch)+".csv"
+    with open(pkl_filename, 'wb') as file:
+        pickle.dump((train_representations,train_labels),file)
+
+    
         
     fig = plt.figure(dpi = 300)
     plt.style.use("default")
@@ -230,10 +201,21 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
             
             
             images, labels = images.to(device), labels.to(device)
-            
+            """
+            Training
+            """
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
+                
+            """
+            id_stuff here
+            
+            test_representations,test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
+            #id_score,std = AstroMLmod.id_score(test_representations)
+            loss = loss*(id_score/100)
+            """
+
             loss.backward()
             optimizer.step()
             
@@ -241,47 +223,41 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
         
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
         model.eval()
+        """
+        Model evaluation
+        """
         
-        train, val = evaluate(model, train_loader, test_loader, device)
+        train, val, train_loss, val_loss = evaluate(model, train_loader, test_loader, criterion, device)
+        train_val_accuracy_loss.append((train, val,train_loss,val_loss,running_loss))
+
         #save classification layer for next epoch
     
         class_layer = model.classifier
         
         test_representations,test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
+        train_representations,train_labels = cust.get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
+
 
         #conpute the id_score
-        #id_score,std = AstroMLmod.id_score(test_representations)
-    
-        #intrinsic_dimension.append((id_score,std))
-        #y, yerr = zip(*intrinsic_dimension)
+        id_score_test,std_test = AstroMLmod.id_score(test_representations)
+        id_score_train,std_train = AstroMLmod.id_score(train_representations)
+
+        ID_scores.append((id_score_test,std_test,id_score_train,std_train))
+
+        #Two point correlation function scores
+        TPCF_score_val = AstroMLmod.TPCF_score(test_representations, epoch = epoch)
+        TPCF_score_train = AstroMLmod.TPCF_score(train_representations, epoch = epoch)
 
 
-        #Faltten the manifold
-        #val_umap = viz.umap(test_representations,scatter = True,name = "UMAP", dim = 2, min_dist = 0.0, n_neighbors = 15,alpha = 0.2)
-
-        pkl_filename = "plots/bad_test_representations"+str(epoch)+".csv"
-        with open(pkl_filename, 'wb') as file:
-            pickle.dump(test_representations,file)
-            
-        pkl_filename = "plots/bad_test_labels"+str(epoch)+".csv"
-        with open(pkl_filename, 'wb') as file:
-            pickle.dump(test_labels,file)
-
-            
-        
-        norm_score = TPCF_score(test_representations, epoch = epoch)
-
-        norm_scores.append(norm_score)
-        #chi_scores.append(chi_score)
+        TPCF_scores.append((TPCF_score_val,TPCF_score_train))
 
 
-        validation_accuracy.append(val)
-        train_accuracy.append(train)
 
         #model.fc = nn.Linear(512, 10) 
         model.classifier = class_layer
         #model.fc = model.fc.to(device)
         x = np.arange(epoch+1)
+        """
         plt.plot([a for a,b in norm_scores], label = "Chi score", color = "blue")
         plt.savefig("NormScores.png")           
         #plt.errorbar(x, y, yerr=yerr, fmt='o', color = "blue", capsize=1)
@@ -291,24 +267,29 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
         plt.plot([100-a for a in train_accuracy], label = "Train error")
         plt.xlabel("Epoch")
         plt.legend(loc="upper right")
-        plt.savefig("Training_val.png")       
+        plt.savefig("Training_val.png")   
+        """
 
         if epoch%10 ==0:
-            pkl_filename = "bad_reply_pca_chi_scores.csv"
+            pkl_filename = "normal_normal_train_test_TPCF_score.csv"
             with open(pkl_filename, 'wb') as file:
-                pickle.dump(chi_scores,file)
+                pickle.dump(TPCF_scores,file)
                 
-            pkl_filename = "bad_reply_pca_norm_scores.csv"
+            pkl_filename = "normal_normal_train_val_accuracy_loss.csv"
             with open(pkl_filename, 'wb') as file:
-                pickle.dump(norm_scores,file)
+                pickle.dump(train_val_accuracy_loss,file)
                 
-            pkl_filename = "bad_reply_pca_chi_validation.csv"
+            pkl_filename = "normal_normal_train_val_id_score.csv"
             with open(pkl_filename, 'wb') as file:
-                pickle.dump(validation_accuracy,file)
-                
-            pkl_filename = "bad_reply_pca_chi_train.csv"
-            with open(pkl_filename, 'wb') as file:
-                pickle.dump(train_accuracy,file) 
+                pickle.dump(ID_scores,file) 
+
+        pkl_filename = "plots/normal_normal_test_representations_labels"+str(epoch)+".csv"
+        with open(pkl_filename, 'wb') as file:
+            pickle.dump((test_representations,test_labels),file)
+            
+        pkl_filename = "plots/normal_normal_train_representations_labels"+str(epoch)+".csv"
+        with open(pkl_filename, 'wb') as file:
+            pickle.dump((train_representations,train_labels),file)
 
 
 if __name__ == "__main__":
