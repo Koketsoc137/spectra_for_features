@@ -382,7 +382,13 @@ def features(loader,model,named = True,batch_size = 128,device = torch.device('c
     return rep,labels
 
 
-def get_representations(model = None,loader = None, batch_size = 128,patch_level_features = False, epoch = 0,device = "cuda"):
+def get_representations(model = None,
+                        loader = None, 
+                        batch_size = 128,
+                        patch_level_features = False,
+                        epoch = 0,
+                        device = "cuda",
+                       encoder = False):
     #initialise global variable
     rep = []
     """
@@ -393,8 +399,15 @@ def get_representations(model = None,loader = None, batch_size = 128,patch_level
     #model.to(device) model already  on device
     """
     #hook = model.avgpool.register_forward_hook(hook_fn)
-    model.classifier[1] = torch.nn.Identity()
+    if not encoder:
+        model.classifier[1] = torch.nn.Identity()
     model.eval()
+
+    # send model to cude
+    
+    if not next(model.parameters()).is_cuda:
+        model.to(device)
+
 
 
     # representations
@@ -402,7 +415,14 @@ def get_representations(model = None,loader = None, batch_size = 128,patch_level
     labels = []
     with torch.no_grad():
             
-        for image,label,name in loader:                                   #name
+        for batch in loader:                                   #name
+            if len(batch) ==3:
+                image,label,name = batch
+            else:
+                image, name = batch
+                label = 1
+            
+
 
             image = image.to(device)
             output = model(image).cpu()

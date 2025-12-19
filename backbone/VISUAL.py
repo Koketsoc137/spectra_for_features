@@ -12,6 +12,7 @@ import time
 import random
 from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib
+import scienceplots
 font = {'family' : 'normal',
         'weight' : 'bold',
         'size'   : 22}
@@ -22,7 +23,7 @@ fig = plt.figure()
 plot_type = 'view'
 
 params = {
-            'font.size':10, 
+            'font.size':20, 
             'figure.dpi':300, 
             'text.usetex':False,
             'font.family':"sans-serif",
@@ -96,10 +97,9 @@ def tsine(dataset,scatter = True):
     x_embedded = x_embedded.fit_transform(dataset)
     if scatter ==True:
         fig = plt.figure(dpi = 300)
-        plt.style.use("default")
-        plt.figure(figsize=(15,10))
+        plt.style.use("science")
+        plt.figure(figsize=(15,15))
         plt.rcParams.update({'font.size': 20}) 
-        plt.style.use("seaborn")
         plt.scatter(x_embedded[:,0],x_embedded[:,1],s = 10,c = "black",alpha = 0.2)
         legend = [ "Distribution" ]
         plt.legend(legend, 
@@ -172,9 +172,9 @@ def  umap(dataset,
 
     if scatter == True and dim ==2:
         fig = plt.figure(dpi = 300)
-        plt.style.use("default")
-        plt.figure(figsize=(15,10))
-        plt.rcParams.update({'font.size': 20}) 
+        plt.style.use("science")
+        plt.figure(figsize=(15,15))
+        plt.rcParams.update({'font.size': 40}) 
         plt.scatter(u_embedded[:,0],u_embedded[:,1],s = 10,c = "black",alpha = alpha)
         legend = [ "Distribution" ]
         
@@ -206,7 +206,6 @@ def HDBSCAN(reduced_data,min_cluster_size = 50,min_samples = 30):
     
     return hd.labels_
 
-# Shades en embedded 2D  dataset accoriding to clustering labels
 
 def shade(embedded_dataset,
           predictions,
@@ -215,17 +214,33 @@ def shade(embedded_dataset,
           save = False,
           label = True,
           gz = False, 
-          alpha = 0.2, 
-          size = 2,
+          alpha = 0.6, 
+          size = 15,
           legendd =[],
           faint_class = -1, 
           limits = None, 
-         hard_coloring = False):
-    colours = ['black','blue','purple','yellow','red','green','orange','cyan','magenta']*100
-    import matplotlib.cm as cm
+         hard_coloring = True):
+
+    
+    colours = ["royalblue",
+                "crimson",
+                "darkorange",
+                "seagreen",
+                "gold",
+                "mediumpurple",
+                "teal",
+                "deeppink",
+                "slategray",
+                "olive"
+                ]*100
+    
     #colours = cm.rainbow(np.linspace(0, 1, numof_class))
     #First we split the dataset according predicted classes
     classes = []
+    fig = plt.figure(dpi = 300)
+    plt.style.use("science")
+    plt.figure(figsize=(15,10))
+    plt.rcParams.update({'font.size': 40}) 
 
 
     #This section creates fake predictions for when you want to plat the data space plainly and illumintate points
@@ -252,8 +267,7 @@ def shade(embedded_dataset,
     
     #Plotting the classses
         #Initialize plot
-    plt.style.use("seaborn-v0_8-white")
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(15,15))
     #plt.figure(facecolor="g")
     faint_alpha = alpha*2
     non_faint_alpha = alpha
@@ -269,7 +283,7 @@ def shade(embedded_dataset,
             else:
                 alpha = non_faint_alpha
 
-            if i ==0:
+            if numof_class ==-1:
                 col = "black"
                 marker = "^"
             else:
@@ -289,19 +303,19 @@ def shade(embedded_dataset,
     if label ==True:
         if gz == True:
             legend = legendd
-        #plt.legend(legend,markerscale = 4, fontsize = 22, loc = 'upper left')
+       # plt.legend(legend,markerscale = 4, fontsize = 22, loc = 'upper left')
     else:
         1
         #plt.legend([str(numof_class)+" Classes"],loc ='top left',fontsize = 22)
 
         
-    plt.title(name,fontsize = 22)
+    plt.title(name,fontsize = 40)
     if limits != None:
         plt.xlim((limits[0],limits[1]))
         plt.ylim((limits[2],limits[3]))
     plt.axis("off")
     if save:
-        plt.savefig(name+"shade.png")
+        plt.savefig(name+"shade.pdf")
     plt.show()
     
     return
@@ -535,7 +549,7 @@ def similarity_searchb(input_index = int,data = list,number_of_neighbors = 10,re
     return neighbors                
 
 
-def pca(data = list,n_components = 500, variance = 0.97,return_all = False,verbose = True, return_variance_dimension = False):
+def pca(data = list,n_components = 500, variance = 1,return_all = False,verbose = True, return_variance_dimension = False):
 
     pca = IncrementalPCA(n_components =n_components)
     pca.fit(data)

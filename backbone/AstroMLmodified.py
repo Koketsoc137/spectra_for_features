@@ -14,7 +14,7 @@ import math
 import skdim
 import time
 import importlib
-importlib.reload(dist)
+
 
 
 
@@ -422,6 +422,14 @@ def correlate_and_plot(data = list,
 
 
 def TPCF_score(representations,epoch = 0, sub_sample = 0.3, Nbootstrap = 5):
+    """
+    The input is hi-dimesional representations, the 2PCF score is computed on the the first 2 PCA components
+    of multiple subsets of the representations
+    """
+
+    #For compatibility with pytorch deep representations
+    #if type(representations) is not list:
+
     representations = np.array([arr.tolist() for arr in representations])
     norm_score = []
 
