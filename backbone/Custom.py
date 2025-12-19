@@ -387,6 +387,7 @@ def get_representations(model = None,
                         batch_size = 128,
                         patch_level_features = False,
                         epoch = 0,
+                        labeled = True,
                         device = "cuda",
                        encoder = False):
     #initialise global variable
@@ -413,26 +414,22 @@ def get_representations(model = None,
     # representations
     rep = []
     labels = []
+    label_ = 0
     with torch.no_grad():
             
-        for batch in loader:                                   #name
+        for batch in loader:                                   
             if len(batch) ==3:
                 image,label,name = batch
             else:
                 image, name = batch
-                label = 1
             
-
-
             image = image.to(device)
             output = model(image).cpu()
             #Id = TwoNN.twonn(output,plot = False)[0][0].item()
-            labels.append(label)
+            labels.append(label_)
             rep.append(output)
             torch.cuda.empty_cache()
     #twoNNs = np.array(twoNNs)
-    
-            
     #hook.remove()
     rep2 = []
     labels2 = []
@@ -442,7 +439,9 @@ def get_representations(model = None,
             #images2.append(images[i][j].cpu().numpy()) #Images
             rep_ = rep[i][j].numpy()
 
-            label_ = labels[i][j].item()
+            if labeled:
+                
+                label_ = labels[i][j].item()
 
             labels2.append(label_)
 
