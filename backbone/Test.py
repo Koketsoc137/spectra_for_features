@@ -40,6 +40,12 @@ def KNN_accuracy(rep,labels):
     return round(m_accuracy*100,2),round(var*100,2)
 
 
+def clustering_accuracy():
+    
+
+    
+
+
 
 def KNN_f1(rep,labels, classes =3 ):
     f1_scores = []
