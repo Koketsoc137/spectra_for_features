@@ -414,6 +414,7 @@ def get_representations(model = None,
     # representations
     rep = []
     labels = []
+    names = []
     label_ = 0
     with torch.no_grad():
             
@@ -428,26 +429,31 @@ def get_representations(model = None,
             #Id = TwoNN.twonn(output,plot = False)[0][0].item()
             labels.append(label_)
             rep.append(output)
+            names.append(name)
             torch.cuda.empty_cache()
     #twoNNs = np.array(twoNNs)
     #hook.remove()
     rep2 = []
     labels2 = []
+    names2 = []
 
     for i in range(len(rep)):
         for j in range(len(rep[i])):
             #images2.append(images[i][j].cpu().numpy()) #Images
             rep_ = rep[i][j].numpy()
+            name_  = names[i][j]
 
             if labeled:
                 
                 label_ = labels[i][j].item()
 
             labels2.append(label_)
+            names2.append(name_)
+    
 
             rep2.append(rep_)        #Representations
 
-    return rep2, labels2
+    return rep2, labels2, names2
 
     #umap = viz.umap(rep2,name = "Features on epoch:"+str(epoch))
     #pca = viz.pca(rep2,variance = 0.95, return_n_components = 20)
