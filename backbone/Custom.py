@@ -147,7 +147,14 @@ class Custom_labelled_pandas(torch.utils.data.Dataset):
         # defined the transform below
         return x,target
 class ArrayDataset(Dataset):
-    def __init__(self, images, labels=None,names = None, transform=None, resize = 256,crop = 224,mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]):
+    def __init__(self, images, 
+                 labels=None,
+                 names = None, 
+                 transform=None,
+                 resize = 256,
+                 crop = 224,
+                 mean=[0.485, 0.456, 0.406],
+                 std=[0.229, 0.224, 0.225]):
         """
         Args:
             images (numpy.ndarray or torch.Tensor): The array of images.

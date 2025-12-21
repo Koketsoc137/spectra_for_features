@@ -66,3 +66,36 @@ def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxy
                             num_workers = num_workers)
 
     return loader, val_loader, class_loader
+
+def galaxyzoo10(batch_size = 256
+               train_size = 0.7,
+               val_split = 0.3,
+                resize = 224,
+                crop = 224,
+                ):
+
+    # To get the images and labels from file
+    with h5py.File('Galaxy10_DECals.h5', 'r') as F:
+        images = np.array(F['images'])
+        labels = np.array(F['ans'])
+        ids = np.array(F['ra'])
+    
+    # To convert the labels to categorical 10 classes
+
+    # To convert to desirable type
+    labels = labels.astype(np.int64)
+    #labels = perturb_list_by_swapping(labels, percentage=5)
+    images = images.astype(np.float16)
+    
+
+    transformed_dataset = cust.ArrayDataset(images = images,labels =labels,names = ids,resize = 224,crop = 224)
+
+
+    dataset_split = cust.train_val_dataset(transformed_dataset, train_size = 0.7,val_split=0.3)
+    
+
+    train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True)
+
+    test_loader = torch.utils.data.DataLoader(dataset_split['val'], batch_size=batch_size, shuffle=True)
+
+    return train_loader, test_loader
