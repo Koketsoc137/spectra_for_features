@@ -451,7 +451,6 @@ def get_representations(model = None,
             name_  = names[i][j]
 
             if labeled:
-                print(labels[i])
                 label_ = labels[i][j].item()
 
             labels2.append(label_)
