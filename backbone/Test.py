@@ -81,7 +81,7 @@ def clustering_accuracy(reps_ids = None,
     2: For each kmeans cluster, find the most common true label
     """
     
-
+    correct = 0
     for cluster_id in np.unique(k_labels_sub):
         #obtatin the locations of all the clusters with the ids
         cluster_mask = (k_labels_sub == cluster_id) 
@@ -91,9 +91,9 @@ def clustering_accuracy(reps_ids = None,
         most_common_true_label = Counter(true_labels_in_cluster).most_common(1)[0][0]
         
         # Count how many samples match the most common label
-        correct += np.sum(true_labels_in_cluster == most_common_label)
+        correct += np.sum(true_labels_in_cluster == most_common_true_label)
 
-
+    print("Clustering accuracy " + str(correct/len(true_labels))
     return correct/len(true_labels)
     
         
