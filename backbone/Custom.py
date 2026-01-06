@@ -422,7 +422,7 @@ def get_representations(model = None,
     rep = []
     labels = []
     names = []
-    label_ = 0
+    label = 0
     with torch.no_grad():
             
         for batch in loader:                                   
@@ -434,7 +434,7 @@ def get_representations(model = None,
             image = image.to(device)
             output = model(image).cpu()
             #Id = TwoNN.twonn(output,plot = False)[0][0].item()
-            labels.append(label_)
+            labels.append(label)
             rep.append(output)
             names.append(name)
             torch.cuda.empty_cache()
@@ -451,7 +451,7 @@ def get_representations(model = None,
             name_  = names[i][j]
 
             if labeled:
-                
+                print(labels[i])
                 label_ = labels[i][j].item()
 
             labels2.append(label_)
