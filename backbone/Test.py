@@ -2,8 +2,7 @@ import sys
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import metrics
 from sklearn.cluster import KMeans
-
-
+from collections import Counter
 from sklearn.model_selection import train_test_split
 import numpy as np
 import pickle
@@ -42,13 +41,13 @@ def KNN_accuracy(rep,labels):
     return round(m_accuracy*100,2),round(var*100,2)
 
 
-def kmeans(reps, n_custers):
+def kmeans(reps = None, n_clusters = None):
         # Define the number of clusters    
     # Create a KMeans instance with the desired number of clusters
     kmeans = KMeans(n_clusters=n_clusters)
     
     # Fit the model to the data
-    kmeans.fit(X)
+    kmeans.fit(reps)
     
     # Get the cluster centers and labels
     centers = kmeans.cluster_centers_
@@ -56,9 +55,15 @@ def kmeans(reps, n_custers):
 
     return labels
 
-def clustering_accuracy(reps_ids = (all_reps,all_reps_ids),
-                        labelled = (labels,labeled_ids),
+def clustering_accuracy(reps_ids = None,
+                        labelled = None,
                        n_clusters = 10):
+    
+    true_labels,labelled_ids = labelled
+
+    all_reps = reps_ids[0]
+    all_reps_ids = reps_ids[1]
+
     """
     1: Assign KMeans labells to source ids
     """
@@ -68,16 +73,18 @@ def clustering_accuracy(reps_ids = (all_reps,all_reps_ids),
     """
     Find the cluster assignments of the labelled subsets
     """
-    k_labels_sub = [k_labels[all_reps_ids]]
-
+    k_labels_sub = [k_labels[all_reps_ids.index(source_id)] for source_id in labelled_ids]
+    
+    k_labels_sub = np.array(k_labels_sub)
+    true_labels = np.array(true_labels)
     """
     2: For each kmeans cluster, find the most common true label
     """
-    true_labels,labelled_ids = labelled
+    
 
-    for cluster_id in np.unique(k_labels):
+    for cluster_id in np.unique(k_labels_sub):
         #obtatin the locations of all the clusters with the ids
-        cluster_mask = (k_labels == cluster_id) 
+        cluster_mask = (k_labels_sub == cluster_id) 
         true_labels_in_cluster = true_labels[cluster_mask]
 
         # Find the most common label in this cluster
@@ -90,18 +97,6 @@ def clustering_accuracy(reps_ids = (all_reps,all_reps_ids),
     return correct/len(true_labels)
     
         
-    
-    accuracy= []
-    for random_state in np.random.randint(1,10000,10):
-        n_clusters = 
-                acc = sum([neigh.predict(X_test) == y_test][0])/len(y_test)
-        
-                accuracy.append(acc)
-            m_accuracy = np.mean(accuracy)
-            var = sem(accuracy)
-
-    
-    return round(m_accuracy*100,2),round(var*100,2)
 
 
 
