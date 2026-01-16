@@ -15,8 +15,6 @@ from sklearn.metrics import f1_score
 
 
 
-
-
 def KNN_accuracy(rep,labels):
     accuracy= []
 
@@ -72,34 +70,42 @@ def clustering_accuracy(reps_ids = None,
 
     """
     Find the cluster assignments of the labelled subsets
+    Below is the K means assignments of the labelled sub-class in order of the labelled
+    sub-class ids
     """
-    k_labels_sub = [k_labels[all_reps_ids.index(source_id)] for source_id in labelled_ids]
+    k_labels_sub = [k_labels[all_reps_ids.index(source_id)] for source_id in set(labelled_ids) & set(all_reps_ids)]
+
+    #remove ids not vound in the bigger list of representations
+    true_labels = [true_labels[labelled_ids.index(source_id)] for source_id in set(labelled_ids) & set(all_reps_ids)]
+
     
     k_labels_sub = np.array(k_labels_sub)
     true_labels = np.array(true_labels)
+    print(k_labels_sub)
+    print(true_labels)
     """
     2: For each kmeans cluster, find the most common true label
     """
-    
     correct = 0
     for cluster_id in np.unique(k_labels_sub):
         #obtatin the locations of all the clusters with the ids
         cluster_mask = (k_labels_sub == cluster_id) 
         true_labels_in_cluster = true_labels[cluster_mask]
-
+    
         # Find the most common label in this cluster
         most_common_true_label = Counter(true_labels_in_cluster).most_common(1)[0][0]
+        print(most_common_true_label)
         
         # Count how many samples match the most common label
         correct += np.sum(true_labels_in_cluster == most_common_true_label)
+        
+        print("pre Clustering accuracy " + str(np.sum(true_labels_in_cluster == most_common_true_label)/(np.sum(true_labels_in_cluster == most_common_true_label)+ np.sum(true_labels_in_cluster != most_common_true_label))))
 
-    print("Clustering accuracy " + str(correct/len(true_labels))
+        
+    print("Clustering accuracy " + str(correct/len(true_labels)))
     return correct/len(true_labels)
     
         
-
-
-
 def KNN_f1(rep,labels, classes =3 ):
     f1_scores = []
     
