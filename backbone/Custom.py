@@ -309,11 +309,16 @@ def plot_weights(model, layer_num, single_channel = True, collated = False):
   else:
     print("Can only visualize layers which are convolutional")
     
-def train_val_dataset(dataset, val_split=0.30,train_size = None):
+def train_val_dataset(dataset, source_ids = None,val_split=0.30,train_size = None):
+    
     train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split,train_size = train_size, random_state = 42)
     datasets = {}
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
+    if source_ids is not None:
+        datasets['train_ids'] = Subset(source_ids, train_idx)
+        datasets['val_ids'] = Subset(source_ids, val_idx)
+
     return datasets
 
 def features(loader,model,named = True,batch_size = 128,device = torch.device('cuda:0'), patch_level_features = True):
@@ -415,7 +420,7 @@ def get_representations(model = None,
     
     if not next(model.parameters()).is_cuda:
         model.to(device)
-
+    
 
 
     # representations
@@ -428,6 +433,7 @@ def get_representations(model = None,
         for batch in loader:                                   
             if len(batch) ==3:
                 image,label,name = batch
+                labeled =  True
             else:
                 image, name = batch
             
@@ -452,8 +458,10 @@ def get_representations(model = None,
 
             if labeled:
                 label_ = labels[i][j].item()
+                labels2.append(label_)
+            else:
 
-            labels2.append(label_)
+                labels2.append(0)
             names2.append(name_)
     
 

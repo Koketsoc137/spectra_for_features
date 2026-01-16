@@ -1,31 +1,41 @@
 import backbone.Custom as Custom
 import torch
+import importlib
+importlib.reload(Custom)
 from torch.utils.data import Dataset, DataLoader
 
 def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxyzoo2",
                             galaxyzooq_dir = "/idia/projects/camil/Koketso/galaxyzoo/resized/galaxy_zoo_class_new",
-                              valsplit = 0.2,
+                              val_split = None,
                             train_split = 0.8,
                             num_workers = 30,
                             batch_size = 128,
                             resize = 224,
                             crop_size = 224):
 
-    dataset = Custom.dataset(galaxyzoo_dir)
-    names = [name[0].split('/')[-1] for name in dataset.imgs]
+    if val_split is None:
+        val_split = 1-train_split
 
+    dataset = Custom.dataset(galaxyzoo_dir)
+    
+    #Obtain source_ids for tracking
+    names =  [name[0].split('/')[-1] for name in dataset.imgs]
+        
     #classification validation
 
     classification_val_dataset = Custom.dataset(galaxyzooq_dir)
+    c_names =  [name[0].split('/')[-1] for name in classification_val_dataset.imgs]
 
-    datasets = Custom.train_val_dataset(dataset, 
-                                        val_split = valsplit
-                                        ,train_size = train_split)
+    datasets = Custom.train_val_dataset(dataset,
+                                        source_ids = names,
+                                        val_split = val_split,
+                                        train_size = train_split)
 
     #Traning
 
+
     transformed_train_dataset = Custom.Custom(datasets['train'],
-                                            names = names,
+                                            names =datasets['train_ids'],
                                             resize = resize,
                                            crop = crop_size,
                                            )
@@ -39,7 +49,7 @@ def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxy
     #validation
 
     transformed_val_dataset = Custom.Custom(datasets['val'],
-                                            names = names,
+                                            names = datasets['val_ids'],
                                             resize = resize,
                                            crop = crop_size,
                                            )
@@ -53,7 +63,7 @@ def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxy
     #Classification validation
 
     transformed_classification_val_dataset = Custom.Custom_labelled(classification_val_dataset,
-                                            names = names,
+                                            names = c_names,
                                             resize = resize,
                                            crop = crop_size,
                                            )
@@ -67,12 +77,13 @@ def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxy
 
     return loader, val_loader, class_loader
 
-def galaxyzoo10(batch_size = 256
+def galaxyzoo10(batch_size = 256,
                train_size = 0.7,
-               val_split = 0.3,
+               val_split = None,
                 resize = 224,
                 crop = 224,
                 ):
+    
 
     # To get the images and labels from file
     with h5py.File('Galaxy10_DECals.h5', 'r') as F:
@@ -91,6 +102,8 @@ def galaxyzoo10(batch_size = 256
     transformed_dataset = cust.ArrayDataset(images = images,labels =labels,names = ids,resize = 224,crop = 224)
 
 
+    if val_split is None:
+        val_split = 1-train_split
     dataset_split = cust.train_val_dataset(transformed_dataset, train_size = 0.7,val_split=0.3)
     
 
