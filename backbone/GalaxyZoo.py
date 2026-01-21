@@ -31,35 +31,41 @@ def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxy
                                         val_split = val_split,
                                         train_size = train_split)
 
-    #Traning
 
 
-    transformed_train_dataset = Custom.Custom(datasets['train'],
-                                            names =datasets['train_ids'],
-                                            resize = resize,
-                                           crop = crop_size,
-                                           )
+    if val_split is not None:
 
-
-    loader = DataLoader(transformed_train_dataset, 
-                            batch_size, 
-                            shuffle = True,
-                            num_workers = num_workers)
-
-    #validation
-
-    transformed_val_dataset = Custom.Custom(datasets['val'],
-                                            names = datasets['val_ids'],
-                                            resize = resize,
-                                           crop = crop_size,
-                                           )
-
-    val_loader = DataLoader(transformed_val_dataset, 
-                            batch_size, 
-                            shuffle = True,
-                            num_workers = num_workers)
-
-
+        #Traning
+        transformed_train_dataset = Custom.Custom(datasets['train'],
+                                                names =datasets['train_ids'],
+                                                resize = resize,
+                                               crop = crop_size,
+                                               )
+        loader = DataLoader(transformed_train_dataset, 
+                                batch_size, 
+                                shuffle = True,
+                                num_workers = num_workers)
+        #validation
+        transformed_val_dataset = Custom.Custom(datasets['val'],
+                                                names = datasets['val_ids'],
+                                                resize = resize,
+                                               crop = crop_size,
+                                               )
+        val_loader = DataLoader(transformed_val_dataset, 
+                                batch_size, 
+                                shuffle = True,
+                                num_workers = num_workers)
+    else:
+        transformed_train_dataset = Custom.Custom(dataset,
+                                                names =names,
+                                                resize = resize,
+                                               crop = crop_size,
+                                               )
+        loader = DataLoader(transformed_train_dataset, 
+                                batch_size, 
+                                shuffle = True,
+                                num_workers = num_workers)
+        val_loader = None
     #Classification validation
 
     transformed_classification_val_dataset = Custom.Custom_labelled(classification_val_dataset,

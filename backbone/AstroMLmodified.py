@@ -26,7 +26,8 @@ Summary statistics for the 2 point correlation function
 def norm(observed,
          errors = None,
          background_factor= 10,
-         bins =[]):
+         bins =[],
+        verbose = False):
     
 
     #removel all invalid entries
@@ -41,14 +42,14 @@ def norm(observed,
     number_of_bins  = np.count_nonzero(~np.isnan(observed))
     norm = np.nansum([o for b,o,e in zip(bins,observed,errors)])
 
-    #norm = np.nansum([(o)**2 for o in observed])
-    print("Background factor", background_factor)
-   # print(observed-(background_factor/0.7))
+    if verbose >2:
+        print("Background factor", background_factor)
 
     #
     norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])/number_of_bins
 
-    print("Number of valid bins: ", number_of_bins)
+    if verbose >2:
+        print("Number of valid bins: ", number_of_bins)
 
     return (norm, norm_error)
 
@@ -276,7 +277,7 @@ def correlate_and_plot(data = list,
                        label = "correlation on features",
                        fig_name ="tpcor",
                        return_corr = False,
-                       verbose = True):
+                       verbose = False):
 
 
     """
@@ -299,15 +300,11 @@ def correlate_and_plot(data = list,
     
     max_dist = np.percentile(np.linalg.norm(data, axis=1), 100)*2
 
-    print(max_dist)
-
     data = data/max_dist
 
     max_dist = np.percentile(np.linalg.norm(data, axis=1), 70)*2
 
-    print(max_dist)
-
-    #Chopping up the space,importtant
+    #Chopping up the space,importtants
     base = 10
     """
     bins = np.logspace(np.log10(max_dist/bin_number)/np.log10(base),
@@ -319,18 +316,14 @@ def correlate_and_plot(data = list,
     bins = np.linspace(min_dist,
                        max_dist, 
                        bin_number)
-    
-
-
-    
-
 
 
 
     if precomputed_RR is None:
 
         if verbose:
-            print("Computing background and RR distributions: will be slower")
+            if verbose > 2:
+                print("Computing background and RR distributions: will be slower")
 
     
             Eff_cov = np.cov(data,rowvar = False)
@@ -398,7 +391,7 @@ def correlate_and_plot(data = list,
                      bins =bins)
         
     
-    print("Repley's K: ",NormScore)
+    #print("Repley's K: ",NormScore)
 
     
     if plot:
@@ -421,7 +414,11 @@ def correlate_and_plot(data = list,
             return NormScore
 
 
-def TPCF_score(representations,epoch = 0, sub_sample = 0.3, Nbootstrap = 5):
+def TPCF_score(representations,
+               epoch = 0,
+               sub_sample = 0.3,
+               Nbootstrap = 5, 
+               verbose = False):
     """
     The input is hi-dimesional representations, the 2PCF score is computed on the the first 2 PCA components
     of multiple subsets of the representations
@@ -436,7 +433,9 @@ def TPCF_score(representations,epoch = 0, sub_sample = 0.3, Nbootstrap = 5):
     for i in range(Nbootstrap):
         #viz.shade(val_flat, predictions = [0]*len(val_flat))
         indices = random.sample(range(len(representations)),int(len(representations)*sub_sample))
-        val_flat_sample =  viz.pca(representations[indices,:],n_components = 2)
+        val_flat_sample =  viz.pca(representations[indices,:],
+                                   n_components = 2,
+                                  verbose = verbose)
     
 
         plot = False
