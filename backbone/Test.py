@@ -81,8 +81,7 @@ def clustering_accuracy(reps_ids = None,
     
     k_labels_sub = np.array(k_labels_sub)
     true_labels = np.array(true_labels)
-    print(k_labels_sub)
-    print(true_labels)
+    print("Length subset used: ",len(true_labels))
     """
     2: For each kmeans cluster, find the most common true label
     """
@@ -94,12 +93,10 @@ def clustering_accuracy(reps_ids = None,
     
         # Find the most common label in this cluster
         most_common_true_label = Counter(true_labels_in_cluster).most_common(1)[0][0]
-        print(most_common_true_label)
         
         # Count how many samples match the most common label
         correct += np.sum(true_labels_in_cluster == most_common_true_label)
         
-        print("pre Clustering accuracy " + str(np.sum(true_labels_in_cluster == most_common_true_label)/(np.sum(true_labels_in_cluster == most_common_true_label)+ np.sum(true_labels_in_cluster != most_common_true_label))))
 
         
     print("Clustering accuracy " + str(correct/len(true_labels)))
