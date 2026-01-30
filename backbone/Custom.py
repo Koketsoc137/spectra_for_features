@@ -412,8 +412,10 @@ def get_representations(model = None,
     #model.to(device) model already  on device
     """
     #hook = model.avgpool.register_forward_hook(hook_fn)
+    if not torch.cuda.is_available():
+        device = "cpu" 
     if not encoder:
-        model.classifier[1] = torch.nn.Identity()
+        model.classifier[-11] = torch.nn.Identity()
     model.eval()
 
     # send model to cude
