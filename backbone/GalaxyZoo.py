@@ -1,7 +1,8 @@
 import backbone.Custom as Custom
 import torch
 import importlib
-importlib.reload(Custom)
+import h5py
+import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
 def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxyzoo2",
@@ -84,7 +85,7 @@ def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxy
     return loader, val_loader, class_loader
 
 def galaxyzoo10(batch_size = 256,
-               train_size = 0.7,
+               train_split = None,
                val_split = None,
                 resize = 224,
                 crop = 224,
@@ -105,12 +106,18 @@ def galaxyzoo10(batch_size = 256,
     images = images.astype(np.float16)
     
 
-    transformed_dataset = cust.ArrayDataset(images = images,labels =labels,names = ids,resize = 224,crop = 224)
+    transformed_dataset = Custom.ArrayDataset(images = images,labels =labels,names = ids,resize = 224,crop = 224)
 
 
-    if val_split is None:
+    if val_split is None and train_split is not None:
+
         val_split = 1-train_split
-    dataset_split = cust.train_val_dataset(transformed_dataset, train_size = 0.7,val_split=0.3)
+
+    if val_split is None and train_split is None:
+
+        return torch.utils.data.DataLoader(transformed_dataset, batch_size=batch_size, shuffle=True)
+    
+    dataset_split = Custom.train_val_dataset(transformed_dataset, train_size = 0.7,val_split=0.3)
     
 
     train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True)
