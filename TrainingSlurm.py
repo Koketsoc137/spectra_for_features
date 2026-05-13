@@ -8,7 +8,7 @@ import backbone.Custom as cust
 import backbone.VISUAL as viz
 import importlib
 import matplotlib.pyplot as plt
-import backbone.AstroMLmodified as AstroMLmod
+import backbone.AstroMLmod3 as AstroMLmod
 import numpy as np
 import backbone.TwoNN as TwoNN
 import time
@@ -61,12 +61,19 @@ def galaxyzoo10(batch_size = 256):
     images = images.astype(np.float16)
     
 
-    transformed_dataset = cust.ArrayDataset(images = images,labels =labels,names = ids,resize = 256,crop = 224)
+    trainsformed_dataset = cust.ArrayDataset(images = images,
+                                            labels =labels,
+                                            names = ids,
+                                            resize = 256,
+                                            crop = 224,
+                                            eval_mode =False )
 
 
     dataset_split = cust.train_val_dataset(transformed_dataset, train_size = 0.6,val_split=0.4)
-    
 
+
+    dataset_split['val'].dataset.eval_mode = True
+    
     train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True)
 
     test_loader = torch.utils.data.DataLoader(dataset_split['val'], batch_size=batch_size, shuffle=True)
@@ -132,6 +139,10 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                           T_max = 100, 
+                                                           eta_min=0)
     #get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
     model.classifier[1]= nn.Linear(model.classifier[1].in_features, 10) 
     #randomize the weights of the newly added sub-layers
@@ -177,11 +188,11 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     
     #Faltten the manifold
 
-    pkl_filename = "plots/normal_normal_test_representations_labels"+str(epoch)+".csv"
+    pkl_filename = "plots/Test_representations_labels"+str(epoch)+".csv"
     with open(pkl_filename, 'wb') as file:
         pickle.dump((test_representations,test_labels),file)
             
-    pkl_filename = "plots/normal_normal_train_representations_labels"+str(epoch)+".csv"
+    pkl_filename = "plots/Train_representations_labels"+str(epoch)+".csv"
     with open(pkl_filename, 'wb') as file:
         pickle.dump((train_representations,train_labels),file)
 
@@ -190,6 +201,7 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     fig = plt.figure(dpi = 300)
     plt.style.use("default")
     plt.figure(figsize=(15,10))
+    print("Epoch: 0")
 
 
     
@@ -218,6 +230,7 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
 
             loss.backward()
             optimizer.step()
+            scheduler.step()
             
             running_loss += loss.item()
         
@@ -271,23 +284,23 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
         """
 
         if epoch%10 ==0:
-            pkl_filename = "normal_normal_train_test_TPCF_score.csv"
+            pkl_filename = "Train_test_TPCF_score.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(TPCF_scores,file)
                 
-            pkl_filename = "normal_normal_train_val_accuracy_loss.csv"
+            pkl_filename = "Train_val_accuracy_loss.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(train_val_accuracy_loss,file)
                 
-            pkl_filename = "normal_normal_train_val_id_score.csv"
+            pkl_filename = "Train_val_id_score.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(ID_scores,file) 
 
-        pkl_filename = "plots/normal_normal_test_representations_labels"+str(epoch)+".csv"
+        pkl_filename = "plots/Test_representations_labels"+str(epoch)+".csv"
         with open(pkl_filename, 'wb') as file:
             pickle.dump((test_representations,test_labels),file)
             
-        pkl_filename = "plots/normal_normal_train_representations_labels"+str(epoch)+".csv"
+        pkl_filename = "plots/Train_representations_labels"+str(epoch)+".csv"
         with open(pkl_filename, 'wb') as file:
             pickle.dump((train_representations,train_labels),file)
 
