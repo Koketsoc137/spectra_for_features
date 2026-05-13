@@ -33,7 +33,8 @@ class Custom(Dataset):
                             tv.transforms.Resize(self.resize),
                             tv.transforms.CenterCrop(self.crop),          
                             tv.transforms.ToTensor(),
-                            tv.transforms.Normalize(mean=self.mean, std=self.std)
+                            tv.transforms.Grayscale(num_output_channels = 3)
+                            #tv.transforms.Normalize(mean=self.mean, std=self.std)
                             ])
         if transform != None:
             self.transform = transform
@@ -147,61 +148,57 @@ class Custom_labelled_pandas(torch.utils.data.Dataset):
         # defined the transform below
         return x,target
 class ArrayDataset(Dataset):
-    def __init__(self, images, 
-                 labels=None,
-                 names = None, 
-                 transform=None,
-                 resize = 256,
-                 crop = 224,
-                 mean=[0.485, 0.456, 0.406],
-                 std=[0.229, 0.224, 0.225]):
-        """
-        Args:
-            images (numpy.ndarray or torch.Tensor): The array of images.
-            labels (list or numpy.ndarray, optional): Corresponding labels.
-            transform (callable, optional): Optional transform to apply.
-        """
+    def __init__(
+        self,
+        images,
+        labels=None,
+        names=None,
+        resize=256,
+        crop=224,
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225],
+        eval_mode=False,
+    ):
         self.images = images
         self.labels = labels
         self.names = names
-        self.resize = resize
-        self.crop = crop
-        self.mean = mean
-        self.std = std
-        self.transform = tv.transforms.Compose([
-                            #tv.transforms.ToPILImage(),
-                            #tv.transforms.Resize((424,424)),
-                           # tv.transforms.ToTensor(),
-                            tv.transforms.Resize(self.resize),
-                            tv.transforms.CenterCrop(self.crop), 
-                            tv.transforms.RandomResizedCrop(size = self.crop,scale=(0.7, 1.0)),   # Randomly crop and pad images
-                            tv.transforms.RandomRotation((0,360)),
-                            #tv.transforms.RandomHorizontalFlip(),      # Random horizontal flip
-                            #tv.transforms.RandomVerticalFlip(),
-                            tv.transforms.ToTensor(),
-                            tv.transforms.Normalize(mean=self.mean, std=self.std)
-                            ])
+
+        self.train_transform = tv.transforms.Compose([
+            tv.transforms.Resize(resize),
+            tv.transforms.CenterCrop(crop),
+            tv.transforms.RandomResizedCrop(size=crop, scale=(0.7, 1.0)),
+            tv.transforms.RandomRotation((0, 360)),
+            tv.transforms.ToTensor(),
+            tv.transforms.Normalize(mean=mean, std=std),
+        ])
+
+        self.eval_transform = tv.transforms.Compose([
+            tv.transforms.Resize(resize),
+            tv.transforms.CenterCrop(crop),
+            tv.transforms.ToTensor(),
+            tv.transforms.Normalize(mean=mean, std=std),
+        ])
+
+        self.eval_mode = eval_mode
+
+    @property
+    def transform(self):
+        return self.eval_transform if self.eval_mode else self.train_transform
+
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
         image = self.images[idx]
-        labels = self.labels[idx]
 
-        # Convert to PIL Image if it's a NumPy array
         if isinstance(image, np.ndarray):
             image = Image.fromarray(image.astype(np.uint8))
-            
-        #labels = torch.from_numpy(labels.astype(np.int64))
 
-        # Apply transformations
-        if self.transform is not None:
-            image = self.transform(image)
+        image = self.transform(image)
+
         if self.labels is not None:
-            return image, labels, self.names[idx]
-        else:
-            return image
-    
+            return image, self.labels[idx], self.names[idx]
+        return image
     
 def dataset(data):
     if data == 'meerkat':

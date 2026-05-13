@@ -7,34 +7,30 @@ from torch.utils.data import Dataset, DataLoader
 
 def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxyzoo2",
                             galaxyzooq_dir = "/idia/projects/camil/Koketso/galaxyzoo/resized/galaxy_zoo_class_new",
-                              val_split = None,
                             train_split = 0.8,
                             num_workers = 30,
                             batch_size = 128,
                             resize = 224,
                             crop_size = 224):
 
-    if val_split is None:
-        val_split = 1-train_split
-
     dataset = Custom.dataset(galaxyzoo_dir)
-    
-    #Obtain source_ids for tracking
+
     names =  [name[0].split('/')[-1] for name in dataset.imgs]
         
-    #classification validation
-
     classification_val_dataset = Custom.dataset(galaxyzooq_dir)
     c_names =  [name[0].split('/')[-1] for name in classification_val_dataset.imgs]
 
-    datasets = Custom.train_val_dataset(dataset,
+
+
+
+    if train_split is not None:
+        
+        val_split = 1-train_split
+        datasets = Custom.train_val_dataset(dataset,
                                         source_ids = names,
                                         val_split = val_split,
                                         train_size = train_split)
 
-
-
-    if val_split is not None:
 
         #Traning
         transformed_train_dataset = Custom.Custom(datasets['train'],
