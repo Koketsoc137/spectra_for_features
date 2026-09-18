@@ -54,6 +54,16 @@ def rr_fraction(cos_edges, k):
         Watson, Statistics on Spheres (1983)
     By rotational invariance this holds for DR as well as RR, so the two are
     equal and the data distribution never enters.
+
+    Distributions of Angles in Random Packing on Spheres@article{cai2013angles,
+    author  = {Cai, T. Tony and Fan, Jianqing and Jiang, Tiefeng},
+    title   = {Distributions of Angles in Random Packing on Spheres},
+    journal = {Journal of Machine Learning Research},
+    volume  = {14},
+    number  = {57},
+    pages   = {1837--1864},
+    year    = {2013}
+    }
     """
     a = 0.5 * (k - 1)
     u = np.clip(1.0 - 0.5 * np.asarray(cos_edges, float), 0.0, 1.0)

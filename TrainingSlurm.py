@@ -4,13 +4,13 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 from torchvision import models
-import backbone.Custom as cust
-import backbone.VISUAL as viz
+import backbone.data_handle.Custom as cust
+import backbone.visuals.VISUAL as viz
 import importlib
 import matplotlib.pyplot as plt
-import backbone.AstroMLmod3 as AstroMLmod
+import backbone.custom_metrics.AstroMLmod3 as AstroMLmod
 import numpy as np
-import backbone.TwoNN as TwoNN
+import backbone.custom_metrics.TwoNN as TwoNN
 import time
 import h5py
 import skdim

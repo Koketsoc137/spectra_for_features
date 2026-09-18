@@ -20,9 +20,9 @@ import h5py
 import matplotlib.pyplot as plt
 from sklearn.metrics import davies_bouldin_score as davies
 
-import backbone.VISUAL as viz
-import backbone.AstroMLmod4 as AstroMLmod
-import backbone.Test as test
+import backbone.visuals.VISUAL as viz
+import backbone.custom_metrics.AstroMLmod4 as AstroMLmod
+import backbone.data_handle.Test as test
 
 # ---------------------------------------------------------------------------
 # Setup

@@ -1,14 +1,14 @@
 import torch
 import torchvision as tv
 import torchvision.models as models
-import backbone.Test as test
+import backbone.data_handle.Test as test
 import timm
-import backbone.Custom as Custom
+import backbone.data_handle.Custom as Custom
 from torch.utils.data import Dataset, DataLoader
-import backbone.VISUAL as viz
-import backbone.GalaxyZoo as gz
+import backbone.visuals.VISUAL as viz
+import backbone.data_handle.GalaxyZoo as gz
 import importlib
-import backbone.AstroMLmodified as AstroMLmod
+import backbone.custom_metrics.AstroMLmodified as AstroMLmod
 import os
 import pandas as pd
 
