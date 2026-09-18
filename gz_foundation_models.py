@@ -13,7 +13,7 @@ import os
 import pandas as pd
 
 WEIGHTS_DIR = "data_models"
-REP_DIR = "representations"
+REP_DIR = "/idia/projects/camil/Koketso/galaxy_zoo_representations"
 os.makedirs(REP_DIR, exist_ok=True)
 
 def save_representations(name, rep, labels, ids):
