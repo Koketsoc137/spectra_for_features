@@ -167,7 +167,7 @@ class ArrayDataset(Dataset):
             tv.transforms.Resize(resize),
             tv.transforms.CenterCrop(crop),
             tv.transforms.RandomResizedCrop(size=crop, scale=(0.7, 1.0)),
-            tv.transforms.RandomRotation((0, 360)),
+            tv.transforms.RandomRotation((0, 180)),
             tv.transforms.ToTensor(),
             tv.transforms.Normalize(mean=mean, std=std),
         ])
@@ -412,7 +412,7 @@ def get_representations(model = None,
     if not torch.cuda.is_available():
         device = "cpu" 
     if not encoder:
-        model.classifier[-11] = torch.nn.Identity()
+        model.classifier[-1] = torch.nn.Identity()
     model.eval()
 
     # send model to cude
