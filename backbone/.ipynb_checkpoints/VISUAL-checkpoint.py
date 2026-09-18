@@ -1,5 +1,5 @@
 #Functions
-#import hdbscan
+import hdbscan
 import umap.umap_ as UMAP
 #import pacmap
 from sklearn import metrics
@@ -12,8 +12,8 @@ import time
 import random
 from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib
-font = {'family' : 'normal',
-        'weight' : 'bold',
+
+font = {'weight' : 'bold',
         'size'   : 22}
 
 matplotlib.rc('font', **font)
@@ -22,7 +22,7 @@ fig = plt.figure()
 plot_type = 'view'
 
 params = {
-            'font.size':10, 
+            'font.size':20, 
             'figure.dpi':300, 
             'text.usetex':False,
             'font.family':"sans-serif",
@@ -77,7 +77,9 @@ def reduce(dataset,n_components):
     print(time.time() - start)
     return pca
 
-def Similarity_index(labels,labels2):
+    
+
+def similarity_index(labels,labels2):
     
     
     similarity = metrics.rand_score(labels2,labels)
@@ -94,10 +96,9 @@ def tsine(dataset,scatter = True):
     x_embedded = x_embedded.fit_transform(dataset)
     if scatter ==True:
         fig = plt.figure(dpi = 300)
-        plt.style.use("default")
-        plt.figure(figsize=(15,10))
+        plt.style.use("science")
+        plt.figure(figsize=(15,15))
         plt.rcParams.update({'font.size': 20}) 
-        plt.style.use("seaborn")
         plt.scatter(x_embedded[:,0],x_embedded[:,1],s = 10,c = "black",alpha = 0.2)
         legend = [ "Distribution" ]
         plt.legend(legend, 
@@ -136,14 +137,22 @@ def pmap(dataset,scatter = False, dim = 2):
     return p_embedded
 
 
-def  umap(dataset,scatter = True,name = "UMAP", dim = 2, min_dist = 0.1, n_neighbors = 20,alpha = 0.2):
+def  umap(dataset,
+          scatter = True,
+          dim = 2, 
+            name = "UMAMP embedding",
+          min_dist = 0.1, 
+          n_neighbors = 20,
+          alpha = 0.2,
+          epcoh = 0,
+         random_state = None):
     start = time.time()
     reducer = UMAP.UMAP(a=None, angular_rp_forest=False, b=None,
      force_approximation_algorithm=False, init='spectral', learning_rate=1.0,
      local_connectivity=1.0, low_memory=False, metric='euclidean',
      metric_kwds=None, min_dist=min_dist, n_components=dim, n_epochs=None,
      n_neighbors= n_neighbors, negative_sample_rate=5, output_metric='euclidean',
-     output_metric_kwds=None, random_state=None, repulsion_strength=1.0,
+     output_metric_kwds=None, random_state= random_state, repulsion_strength=1.0,
      set_op_mix_ratio=1.0, spread=1.0, target_metric='categorical',
      target_metric_kwds=None, target_n_neighbors=-1, target_weight=0.5,
      transform_queue_size=4.0, transform_seed=4, unique=False, verbose=False)
@@ -153,7 +162,7 @@ def  umap(dataset,scatter = True,name = "UMAP", dim = 2, min_dist = 0.1, n_neigh
 
         #Save 2D represenatation
 
-    pkl_filename = "nn"+str(n_neighbors)+"md"+str(min_dist)+".txt"
+    pkl_filename = "Umap on "+name+".csv"
     #Load from file
     print("Saved : ", pkl_filename)
     with open(pkl_filename, 'wb') as file:
@@ -162,9 +171,9 @@ def  umap(dataset,scatter = True,name = "UMAP", dim = 2, min_dist = 0.1, n_neigh
 
     if scatter == True and dim ==2:
         fig = plt.figure(dpi = 300)
-        plt.style.use("default")
-        plt.figure(figsize=(15,10))
-        plt.rcParams.update({'font.size': 20}) 
+        plt.style.use('seaborn-v0_8-paper')
+        plt.figure(figsize=(15,15))
+        plt.rcParams.update({'font.size': 40}) 
         plt.scatter(u_embedded[:,0],u_embedded[:,1],s = 10,c = "black",alpha = alpha)
         legend = [ "Distribution" ]
         
@@ -196,7 +205,6 @@ def HDBSCAN(reduced_data,min_cluster_size = 50,min_samples = 30):
     
     return hd.labels_
 
-# Shades en embedded 2D  dataset accoriding to clustering labels
 
 def shade(embedded_dataset,
           predictions,
@@ -205,17 +213,36 @@ def shade(embedded_dataset,
           save = False,
           label = True,
           gz = False, 
-          alpha = 0.2, 
-          size = 2,
+          alpha = 0.6, 
+          size = 15,
           legendd =[],
           faint_class = -1, 
           limits = None, 
-         hard_coloring = False):
-    colours = ['black','blue','purple','yellow','red','green','orange','cyan','magenta']*100
-    import matplotlib.cm as cm
+         hard_coloring = True
+         ):
+
+    
+    colours = ["royalblue",
+                "crimson",
+                "darkorange",
+                "seagreen",
+                "gold",
+                "mediumpurple",
+                "teal",
+                "deeppink",
+                "slategray",
+                "olive"
+                ]*100
+    
     #colours = cm.rainbow(np.linspace(0, 1, numof_class))
     #First we split the dataset according predicted classes
     classes = []
+    fig = plt.figure(dpi = 300)
+    plt.style.use('seaborn-v0_8-paper')    
+    plt.figure(figsize=(15,10))
+    plt.rcParams.update({'font.size': 40}) 
+    colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 100
+
 
 
     #This section creates fake predictions for when you want to plat the data space plainly and illumintate points
@@ -242,8 +269,7 @@ def shade(embedded_dataset,
     
     #Plotting the classses
         #Initialize plot
-    plt.style.use("seaborn-v0_8-white")
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(15,15))
     #plt.figure(facecolor="g")
     faint_alpha = alpha*2
     non_faint_alpha = alpha
@@ -259,7 +285,7 @@ def shade(embedded_dataset,
             else:
                 alpha = non_faint_alpha
 
-            if i ==0:
+            if numof_class ==-1:
                 col = "black"
                 marker = "^"
             else:
@@ -279,22 +305,23 @@ def shade(embedded_dataset,
     if label ==True:
         if gz == True:
             legend = legendd
-        #plt.legend(legend,markerscale = 4, fontsize = 22, loc = 'upper left')
+       # plt.legend(legend,markerscale = 4, fontsize = 22, loc = 'upper left')
     else:
         1
         #plt.legend([str(numof_class)+" Classes"],loc ='top left',fontsize = 22)
 
         
-    plt.title(name,fontsize = 22)
+    plt.title(name,fontsize = 40)
     if limits != None:
         plt.xlim((limits[0],limits[1]))
         plt.ylim((limits[2],limits[3]))
-    plt.axis("off")
+    plt.xlabel("Feature x")
+    plt.ylabel("Feature y")
     if save:
-        plt.savefig(name+"shade.png")
-    plt.show()
-    
-    return
+        plt.savefig(str(name)+"shade.pdf")
+
+        
+    return plt.gca()
 
 # Returns an array showing how many elements are in clusters i.e [x elements in cluster 0, y elements in cluster 1, z elements in cluster 2]
 def groups(array,lowest_class = 0):
@@ -525,7 +552,7 @@ def similarity_searchb(input_index = int,data = list,number_of_neighbors = 10,re
     return neighbors                
 
 
-def pca(data = list,n_components = 500, variance = 0.97,return_all = False,verbose = True, return_variance_dimension = False):
+def pca(data = list,n_components = 500, variance = 1,return_all = False,verbose = True, return_variance_dimension = False, comp_and_var = False):
 
     pca = IncrementalPCA(n_components =n_components)
     pca.fit(data)
@@ -547,7 +574,45 @@ def pca(data = list,n_components = 500, variance = 0.97,return_all = False,verbo
     if return_all:
         return components
     else:
-        return components[:,0:i]
+        if comp_and_var:
+            return components[:,0:i], prefered_variance
+        else:
+            return components[:,0:i]
+
+
+def pca_slices(data = list,
+               n_components = 500,
+               sample_first_2_comp_to_n = 10,
+               variance = 0.97,
+               return_all = False,
+               verbose = True, 
+               return_variance_dimension = False):
+
+    pca = IncrementalPCA(n_components =n_components)
+    pca.fit(data)
+    components  = pca.transform(data)
+    var = pca.explained_variance_ratio_
+
+    
+
+    prefered_variance = 0;
+
+    #Here I decide the number of components to keep, using the variance
+
+    i = 0
+    while prefered_variance < variance and i <n_components:
+        prefered_variance += var[i]
+        i +=1
+    if verbose:
+        print("Variance to keep : ",prefered_variance," number of components : ",i )
+    if return_variance_dimension:
+        return prefered_variance,i
+    if return_all:
+        return components
+    else:
+        indices  =random.sample(range(n_components), 2)#
+        
+        return components[:,indices]
 
 
 

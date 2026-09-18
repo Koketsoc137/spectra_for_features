@@ -16,6 +16,16 @@ import h5py
 import skdim
 import pickle
 import random    
+from sklearn.utils.class_weight import compute_class_weight
+import copy
+
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+
 
 
 def get_data_loaders(Dir = "some/directory", batch_size = 32):
@@ -45,7 +55,7 @@ def perturb_list_by_swapping(lst, percentage=5):
     return perturbed_lst
 
 
-def galaxyzoo10(batch_size = 256):
+def galaxyzoo10(batch_size = 256, perturb = True):
 
     # To get the images and labels from file
     with h5py.File('Galaxy10_DECals.h5', 'r') as F:
@@ -57,11 +67,12 @@ def galaxyzoo10(batch_size = 256):
 
     # To convert to desirable type
     labels = labels.astype(np.int64)
-    # labels = perturb_list_by_swapping(labels, percentage=30)
+    if perturb:
+        labels = perturb_list_by_swapping(labels, percentage=30)
     images = images.astype(np.float16)
     
 
-    trainsformed_dataset = cust.ArrayDataset(images = images,
+    transformed_dataset = cust.ArrayDataset(images = images,
                                             labels =labels,
                                             names = ids,
                                             resize = 256,
@@ -69,10 +80,10 @@ def galaxyzoo10(batch_size = 256):
                                             eval_mode =False )
 
 
-    dataset_split = cust.train_val_dataset(transformed_dataset, train_size = 0.6,val_split=0.4)
+    dataset_split = cust.train_val_dataset(transformed_dataset, train_size = 0.7,val_split=0.3)
 
 
-    dataset_split['val'].dataset.eval_mode = True
+    dataset_split['val'].dataset.eval_mode = False
     
     train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True)
 
@@ -124,30 +135,49 @@ def evaluate(model, train_loader,test_loader,criterion,device):
 
 
 
-def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_new", batch_size=64, device='cuda'):
+def train_resnet(num_epochs=100, learning_rate=0.00005, Dir ="galaxy_zoo_class_new", batch_size=64, device='cuda'):
+
+    """
 
     fig = plt.figure(dpi = 300)
     plt.style.use("default")
     plt.figure(figsize=(15,10))
     plt.rcParams.update({'font.size': 20}) 
-
+    """
+    #randomize seeds
+    import time
+    seed = int(time.time())
+    set_seed(seed)
+    print(f"Seed: {seed}") 
 
     train_loader, test_loader = galaxyzoo10(batch_size = batch_size)
     
     model = models.efficientnet_b0(weights = "IMAGENET1K_V1")
+    model.classifier[1]= nn.Linear(model.classifier[1].in_features, 10)
+    model.classifier[1].weight.data.normal_(0,0.01)
+
 
     
-    criterion = nn.CrossEntropyLoss()
+    all_labels = []
+    for _, labels,_ in train_loader:
+        all_labels.extend(labels.numpy())
+    all_labels = np.array(all_labels)
+    
+    # Compute weights
+    class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(all_labels), y=all_labels)
+    class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+
+    
+    criterion = nn.CrossEntropyLoss(weight = class_weights)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
                                                            T_max = 100, 
-                                                           eta_min=0)
-    #get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
-    model.classifier[1]= nn.Linear(model.classifier[1].in_features, 10) 
+                                                           eta_min=1e-7)
+    
     #randomize the weights of the newly added sub-layers
-    model.classifier[1].weight.data.normal_(0,0.01)
     model = model.to(device)
+    class_layer = model.classifier[-1]
 
     ID_scores = []
     train_val_accuracy_loss = []
@@ -157,15 +187,20 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
 
 
     #Obtain train and test accuracies
+    model.eval()
+
     
     train, val,train_loss,val_loss = evaluate(model, train_loader, test_loader,criterion, device)
 
     train_val_accuracy_loss.append((train, val,train_loss,val_loss))
 
 
+
+
     #get representatations
-    test_representations, test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
-    train_representations,train_labels = cust.get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
+
+    test_representations, test_labels,_ = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
+    train_representations,train_labels,_ = cust.get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
 
 
     #conpute the id_score
@@ -188,11 +223,11 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     
     #Faltten the manifold
 
-    pkl_filename = "plots/Test_representations_labels"+str(epoch)+".csv"
+    pkl_filename = "plots/cTest_representations_labels"+str(epoch)+".csv"
     with open(pkl_filename, 'wb') as file:
         pickle.dump((test_representations,test_labels),file)
             
-    pkl_filename = "plots/Train_representations_labels"+str(epoch)+".csv"
+    pkl_filename = "plots/cTrain_representations_labels"+str(epoch)+".csv"
     with open(pkl_filename, 'wb') as file:
         pickle.dump((train_representations,train_labels),file)
 
@@ -203,9 +238,9 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
     plt.figure(figsize=(15,10))
     print("Epoch: 0")
 
-
-    
     for epoch in range(1,num_epochs):
+        model.classifier[-1] = class_layer
+        print(class_layer)
         model.train()
         running_loss = 0.0
         
@@ -232,9 +267,9 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
             optimizer.step()
             scheduler.step()
             
-            running_loss += loss.item()
+            #running_loss += loss.item()
         
-        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
+        print(f'Epoch [{epoch}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
         model.eval()
         """
         Model evaluation
@@ -245,10 +280,10 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
 
         #save classification layer for next epoch
     
-        class_layer = model.classifier
+        class_layer = model.classifier[-1]
         
-        test_representations,test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
-        train_representations,train_labels = cust.get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
+        test_representations,test_labels,_ = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
+        train_representations,train_labels,_ = cust.get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
 
 
         #conpute the id_score
@@ -267,7 +302,7 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
 
 
         #model.fc = nn.Linear(512, 10) 
-        model.classifier = class_layer
+
         #model.fc = model.fc.to(device)
         x = np.arange(epoch+1)
         """
@@ -284,23 +319,23 @@ def train_resnet(num_epochs=100, learning_rate=0.0005, Dir ="galaxy_zoo_class_ne
         """
 
         if epoch%10 ==0:
-            pkl_filename = "Train_test_TPCF_score.csv"
+            pkl_filename = "aTrain_test_TPCF_score.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(TPCF_scores,file)
                 
-            pkl_filename = "Train_val_accuracy_loss.csv"
+            pkl_filename = "cTrain_val_accuracy_loss.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(train_val_accuracy_loss,file)
                 
-            pkl_filename = "Train_val_id_score.csv"
+            pkl_filename = "cTrain_val_id_score.csv"
             with open(pkl_filename, 'wb') as file:
                 pickle.dump(ID_scores,file) 
 
-        pkl_filename = "plots/Test_representations_labels"+str(epoch)+".csv"
+        pkl_filename = "plots/cTest_representations_labels"+str(epoch)+".csv"
         with open(pkl_filename, 'wb') as file:
             pickle.dump((test_representations,test_labels),file)
             
-        pkl_filename = "plots/Train_representations_labels"+str(epoch)+".csv"
+        pkl_filename = "plots/cTrain_representations_labels"+str(epoch)+".csv"
         with open(pkl_filename, 'wb') as file:
             pickle.dump((train_representations,train_labels),file)
 

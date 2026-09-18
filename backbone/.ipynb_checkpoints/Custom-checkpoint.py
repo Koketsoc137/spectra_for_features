@@ -33,7 +33,8 @@ class Custom(Dataset):
                             tv.transforms.Resize(self.resize),
                             tv.transforms.CenterCrop(self.crop),          
                             tv.transforms.ToTensor(),
-                            tv.transforms.Normalize(mean=self.mean, std=self.std)
+                            tv.transforms.Grayscale(num_output_channels = 3)
+                            #tv.transforms.Normalize(mean=self.mean, std=self.std)
                             ])
         if transform != None:
             self.transform = transform
@@ -147,54 +148,57 @@ class Custom_labelled_pandas(torch.utils.data.Dataset):
         # defined the transform below
         return x,target
 class ArrayDataset(Dataset):
-    def __init__(self, images, labels=None,names = None, transform=None, resize = 256,crop = 224,mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]):
-        """
-        Args:
-            images (numpy.ndarray or torch.Tensor): The array of images.
-            labels (list or numpy.ndarray, optional): Corresponding labels.
-            transform (callable, optional): Optional transform to apply.
-        """
+    def __init__(
+        self,
+        images,
+        labels=None,
+        names=None,
+        resize=256,
+        crop=224,
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225],
+        eval_mode=False,
+    ):
         self.images = images
         self.labels = labels
         self.names = names
-        self.resize = resize
-        self.crop = crop
-        self.mean = mean
-        self.std = std
-        self.transform = tv.transforms.Compose([
-                            #tv.transforms.ToPILImage(),
-                            #tv.transforms.Resize((424,424)),
-                           # tv.transforms.ToTensor(),
-                            tv.transforms.Resize(self.resize),
-                            tv.transforms.CenterCrop(self.crop), 
-                            tv.transforms.RandomResizedCrop(size = self.crop,scale=(0.7, 1.0)),   # Randomly crop and pad images
-                            tv.transforms.RandomRotation((0,360)),
-                            #tv.transforms.RandomHorizontalFlip(),      # Random horizontal flip
-                            #tv.transforms.RandomVerticalFlip(),
-                            tv.transforms.ToTensor(),
-                            tv.transforms.Normalize(mean=self.mean, std=self.std)
-                            ])
+
+        self.train_transform = tv.transforms.Compose([
+            tv.transforms.Resize(resize),
+            tv.transforms.CenterCrop(crop),
+            tv.transforms.RandomResizedCrop(size=crop, scale=(0.7, 1.0)),
+            tv.transforms.RandomRotation((0, 180)),
+            tv.transforms.ToTensor(),
+            tv.transforms.Normalize(mean=mean, std=std),
+        ])
+
+        self.eval_transform = tv.transforms.Compose([
+            tv.transforms.Resize(resize),
+            tv.transforms.CenterCrop(crop),
+            tv.transforms.ToTensor(),
+            tv.transforms.Normalize(mean=mean, std=std),
+        ])
+
+        self.eval_mode = eval_mode
+
+    @property
+    def transform(self):
+        return self.eval_transform if self.eval_mode else self.train_transform
+
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
         image = self.images[idx]
-        labels = self.labels[idx]
 
-        # Convert to PIL Image if it's a NumPy array
         if isinstance(image, np.ndarray):
             image = Image.fromarray(image.astype(np.uint8))
-            
-        #labels = torch.from_numpy(labels.astype(np.int64))
 
-        # Apply transformations
-        if self.transform is not None:
-            image = self.transform(image)
+        image = self.transform(image)
+
         if self.labels is not None:
-            return image, labels, self.names[idx]
-        else:
-            return image
-    
+            return image, self.labels[idx], self.names[idx]
+        return image
     
 def dataset(data):
     if data == 'meerkat':
@@ -302,11 +306,16 @@ def plot_weights(model, layer_num, single_channel = True, collated = False):
   else:
     print("Can only visualize layers which are convolutional")
     
-def train_val_dataset(dataset, val_split=0.30,train_size = None):
+def train_val_dataset(dataset, source_ids = None,val_split=0.30,train_size = None):
+    
     train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split,train_size = train_size, random_state = 42)
     datasets = {}
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
+    if source_ids is not None:
+        datasets['train_ids'] = Subset(source_ids, train_idx)
+        datasets['val_ids'] = Subset(source_ids, val_idx)
+
     return datasets
 
 def features(loader,model,named = True,batch_size = 128,device = torch.device('cuda:0'), patch_level_features = True):
@@ -382,7 +391,14 @@ def features(loader,model,named = True,batch_size = 128,device = torch.device('c
     return rep,labels
 
 
-def get_representations(model = None,loader = None, batch_size = 128,patch_level_features = False, epoch = 0,device = "cuda"):
+def get_representations(model = None,
+                        loader = None, 
+                        batch_size = 128,
+                        patch_level_features = False,
+                        epoch = 0,
+                        labeled = True,
+                        device = "cuda",
+                       encoder = False):
     #initialise global variable
     rep = []
     """
@@ -393,42 +409,64 @@ def get_representations(model = None,loader = None, batch_size = 128,patch_level
     #model.to(device) model already  on device
     """
     #hook = model.avgpool.register_forward_hook(hook_fn)
-    model.classifier[1] = torch.nn.Identity()
+    if not torch.cuda.is_available():
+        device = "cpu" 
+    if not encoder:
+        model.classifier[-1] = torch.nn.Identity()
     model.eval()
+
+    # send model to cude
+    
+    if not next(model.parameters()).is_cuda:
+        model.to(device)
+    
 
 
     # representations
     rep = []
     labels = []
+    names = []
+    label = 0
     with torch.no_grad():
             
-        for image,label,name in loader:                                   #name
-
+        for batch in loader:                                   
+            if len(batch) ==3:
+                image,label,name = batch
+                labeled =  True
+            else:
+                image, name = batch
+            
             image = image.to(device)
             output = model(image).cpu()
             #Id = TwoNN.twonn(output,plot = False)[0][0].item()
             labels.append(label)
             rep.append(output)
+            names.append(name)
             torch.cuda.empty_cache()
     #twoNNs = np.array(twoNNs)
-    
-            
     #hook.remove()
     rep2 = []
     labels2 = []
+    names2 = []
 
     for i in range(len(rep)):
         for j in range(len(rep[i])):
             #images2.append(images[i][j].cpu().numpy()) #Images
             rep_ = rep[i][j].numpy()
+            name_  = names[i][j]
 
-            label_ = labels[i][j].item()
+            if labeled:
+                label_ = labels[i][j].item()
+                labels2.append(label_)
+            else:
 
-            labels2.append(label_)
+                labels2.append(0)
+            names2.append(name_)
+    
 
             rep2.append(rep_)        #Representations
 
-    return rep2, labels2
+    return rep2, labels2, names2
 
     #umap = viz.umap(rep2,name = "Features on epoch:"+str(epoch))
     #pca = viz.pca(rep2,variance = 0.95, return_n_components = 20)
