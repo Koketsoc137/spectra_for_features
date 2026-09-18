@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=gz_foundation_models
 #SBATCH --partition=GPU
-#SBATCH --constraint=a100
+#SBATCH --constraint=v100
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G

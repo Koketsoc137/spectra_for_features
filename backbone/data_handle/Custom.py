@@ -33,8 +33,7 @@ class Custom(Dataset):
                             tv.transforms.Resize(self.resize),
                             tv.transforms.CenterCrop(self.crop),          
                             tv.transforms.ToTensor(),
-                            tv.transforms.Grayscale(num_output_channels = 3)
-                            #tv.transforms.Normalize(mean=self.mean, std=self.std)
+                            tv.transforms.Normalize(mean=self.mean, std=self.std)
                             ])
         if transform != None:
             self.transform = transform
@@ -167,7 +166,7 @@ class ArrayDataset(Dataset):
             tv.transforms.Resize(resize),
             tv.transforms.CenterCrop(crop),
             tv.transforms.RandomResizedCrop(size=crop, scale=(0.7, 1.0)),
-            tv.transforms.RandomRotation((0, 180)),
+            tv.transforms.RandomRotation((0, 360)),
             tv.transforms.ToTensor(),
             tv.transforms.Normalize(mean=mean, std=std),
         ])
@@ -199,6 +198,7 @@ class ArrayDataset(Dataset):
         if self.labels is not None:
             return image, self.labels[idx], self.names[idx]
         return image
+    
     
 def dataset(data):
     if data == 'meerkat':

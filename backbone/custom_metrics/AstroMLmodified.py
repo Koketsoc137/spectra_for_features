@@ -3,52 +3,54 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
-try:
-    import backbone.Distributions as dist
-    import backbone.VISUAL as viz
-except:
-    import spectra_for_features.backbone.Distributions as dist
-    import spectra_for_features.backbone.VISUAL as viz
+from ..visuals import Distributions as dist
+from ..visuals import VISUAL as viz
     
 import math
 import skdim
 import time
 import importlib
+import matplotlib.pyplot as plt
 
-importlib.reload(dist)
-"""
-Summary statistics for the 2 point correlation function
-"""
 
 def norm(observed,
-         errors = None,
-         background_factor= 10,
-         bins =[],
+        errors = None,
+        background_factor= 10,
+        bins =[],
         verbose = False):
-    
 
-    #removel all invalid entries
-    dr = bins[2]-bins[1]
+    """
+    Remove all the zeros because the will not caoult anyway
+    """
+    
+    errors, DD = errors
+    o_zero = (observed == 0)
+    observed[o_zero] = np.nan
+
+    
+    """
+    Zero poission errors correspond to bins without pair counts, blows up the TPCF score whe included
+    """
+    errors_zero = (errors == 0)
+    errors[errors_zero] = np.nan
+    
 
     valid = (~np.isnan(observed))&(~np.isnan(errors))
-    
+
+
     observed = observed[valid]
     errors = errors[valid]
+    
+    DD  = DD[valid]
+    total_pairs = sum(DD)
+
+    print(len(observed))
+
+    norm = np.nansum([ (o)**2/e**2 for b,o,e in zip(bins,observed,errors)])/total_pairs
+    #norm = np.nansum(observed)
+    return norm
 
 
-    number_of_bins  = np.count_nonzero(~np.isnan(observed))
-    norm = np.nansum([o for b,o,e in zip(bins,observed,errors)])
-
-    if verbose >2:
-        print("Background factor", background_factor)
-
-    #
-    norm_error = np.sum([abs(2*o*e) for o,e in zip(observed,errors)])/number_of_bins
-
-    if verbose >2:
-        print("Number of valid bins: ", number_of_bins)
-
-    return (norm, norm_error)
 
 
 
@@ -102,7 +104,6 @@ def two_point(data,
     n_samples, n_features = data.shape
     
     # shuffle all but one axis to get background distribution
-
     if precomputed_RR is None:
         if data_R is None:
             data_R = data.copy()
@@ -117,12 +118,7 @@ def two_point(data,
 
     else:
         factor = background_factor/sub_sample_fraction
-        print("Bakcground factor from twopoint", background_factor)
 
-
-
-
-    
 
     # Fast two-point correlation functions added in scikit-learn v. 0.14
     KDT_D = KDTree(data)
@@ -165,10 +161,16 @@ def two_point(data,
             corr = (factor ** 2 * DD - 2 * factor * DR + RR) / RR
 
     corr[RR_zero] = np.nan
-    print(factor)
 
-    corr_err =  np.asarray([(1+cor)/math.sqrt(d) for cor,d in zip(corr,DD)])
-    return corr, corr_err
+    DD_zero = (DD == 0)
+    DD[DD_zero] = 1
+
+    
+    corr_err =  np.asarray([math.sqrt(1+cor)/math.sqrt(d) for cor,d in zip(corr,DD)])
+
+    return corr, (corr_err,DD)
+
+    
 
 
 def bootstrap_two_point(data, 
@@ -233,7 +235,7 @@ def bootstrap_two_point(data,
 
     bootstraps = np.zeros((Nbootstrap, len(bins[1:])))
 
-
+    corr_error = None
         
     for i in range(Nbootstrap):
         
@@ -266,9 +268,10 @@ def correlate_and_plot(data = list,
                        bin_number = 100,
                        plot = False,
                        bootstrap = True,
-                       Nbootstrap = 1,
+                       Nbootstrap = 5,
                        representations = [],
                        precomputed_RR = None,
+                       precompute = False,
                        background = None,
                        background_factor = 1,
                        method = "standard",
@@ -296,16 +299,15 @@ def correlate_and_plot(data = list,
     distances = np.linalg.norm(data, axis=1)
     
     
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 100)*2
+    max_dist = distances.max()
 
     data = data/max_dist
 
     max_dist = np.percentile(np.linalg.norm(data, axis=1), 68)*2
 
     #Chopping up the space,importtants
-    """
     base = 10
-    
+    """
     bins = np.logspace(np.log10(max_dist/bin_number)/np.log10(base),
                        np.log10(max_dist),
                        bin_number,
@@ -320,60 +322,55 @@ def correlate_and_plot(data = list,
 
     if precomputed_RR is None:
 
-        if verbose:
-            if verbose > 2:
-                print("Computing background and RR distributions: will be slower")
+            if verbose:
+                if verbose > 2:
+                    print("Computing background and RR distributions: will be slower")
 
     
-        Eff_cov = np.cov(data,rowvar = False)
+            Eff_cov = np.cov(data,rowvar = False)
+            Eff_mean = np.mean(data, axis = 0)
         
-        length, dimension = data.shape
+            length, dimension = data.shape
         
             #Percentile of the scaled data
 
-        if method == "standard":
+            if method == "standard":
             
 
-
-            precomputed_RR =  dist.precompute_RR(bins = bins,
-                                                   dimension = dimension,
-                                                   n_points =background_factor*len(data), 
-                                                   metric = "euclidean",
-                                                   use_stored = False,
-                                                   background = None,
-                                                   statistics = "Gaussian",
-                                                   Eff_cov = Eff_cov,
-                                                    Eff_mean = Eff_mean
-                                                   )
-            
-        else:
-            """
-            Using landy-szaly requires more complex distributions best comuted 
-            while computing the 2pcf
-            """
+                if precompute:
                     
-            background = dist.generate_gaussian_points(mean = Eff_mean, 
+                    precomputed_RR =  dist.precompute_RR(bins = bins,
+                                                           dimension = dimension,
+                                                           n_points =background_factor*len(data), 
+                                                           metric = "euclidean",
+                                                           use_stored = False,
+                                                           background = None,
+                                                           statistics = "Gaussian",
+                                                           Eff_cov = Eff_cov,
+                                                           )
+                else:
+                    
+                    background = dist.generate_gaussian_points(mean = Eff_mean, 
                                                                  cov = Eff_cov,
                                                                  n_points = background_factor*len(data), 
                                                                  dimensions = dimension,
                                                                  seed = random.randint(0,10000))
 
 
-
     
 
     if bootstrap:
         bootstraps,poisson_error = bootstrap_two_point(data, bins, 
-                                        data_R = background,
-                                        background_factor = background_factor,
-                                        precomputed_RR = precomputed_RR,
-                                        Nbootstrap=Nbootstrap,
-                                        sub_sample_fraction =0.8,
-                                        method = method,  
-                                        return_bootstraps =True,
-                                        flatten_reps = False,
-                                        representations = representations,
-                                        )
+                                                        data_R = background,
+                                                        background_factor = background_factor,
+                                                        precomputed_RR = precomputed_RR,
+                                                        Nbootstrap=Nbootstrap,
+                                                        sub_sample_fraction =0.3,
+                                                        method = method,  
+                                                        return_bootstraps =True,
+                                                        flatten_reps = False,
+                                                        representations = representations,
+                                                        )
     
         
         corr = np.ma.masked_invalid(bootstraps).mean(0)
@@ -391,7 +388,7 @@ def correlate_and_plot(data = list,
                             
 
     NormScore = norm(corr,
-                     errors =dcorr,
+                     errors =poisson_error,
                      background_factor= background_factor,
                      bins =bins)
         
@@ -399,7 +396,7 @@ def correlate_and_plot(data = list,
     #print("Repley's K: ",NormScore)
 
     
-    if True:
+    if plot:
         fig = plt.figure(dpi = 300)
         plt.style.use("default")
         plt.figure(figsize=(15,10))
@@ -414,7 +411,7 @@ def correlate_and_plot(data = list,
 
     else:
         if return_corr:
-            return corr,dcorr,NormScore
+            return corr,dcorr,(NormScore,0.00001)
         else:
             return NormScore
 
@@ -423,8 +420,7 @@ def TPCF_score(representations,
                epoch = 0,
                sub_sample = 0.3,
                Nbootstrap = 5, 
-               verbose = False,
-              plot = True):
+               verbose = False):
     """
     The input is hi-dimesional representations, the 2PCF score is computed on the the first 2 PCA components
     of multiple subsets of the representations
@@ -444,6 +440,7 @@ def TPCF_score(representations,
                                   verbose = verbose)
     
 
+        plot = False
         scatter = False
 
         

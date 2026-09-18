@@ -230,7 +230,6 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
                            background = None,
                            statistics = "Gaussian",
                            Eff_cov = None,
-                           Eff_mean = None,
                         ):
 
     
@@ -261,7 +260,10 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
 
     else:
     
-        
+    
+    
+        Eff_mean = np.zeros(dimension)
+    
         if background is None:
 
             if statistics == "Uniform":

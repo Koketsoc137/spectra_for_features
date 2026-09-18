@@ -12,8 +12,9 @@ import time
 import random
 from mpl_toolkits.axes_grid1 import ImageGrid
 import matplotlib
-
-font = {'weight' : 'bold',
+import scienceplots
+font = {'family' : 'normal',
+        'weight' : 'bold',
         'size'   : 22}
 
 matplotlib.rc('font', **font)
@@ -171,7 +172,7 @@ def  umap(dataset,
 
     if scatter == True and dim ==2:
         fig = plt.figure(dpi = 300)
-        plt.style.use('seaborn-v0_8-paper')
+        plt.style.use("science")
         plt.figure(figsize=(15,15))
         plt.rcParams.update({'font.size': 40}) 
         plt.scatter(u_embedded[:,0],u_embedded[:,1],s = 10,c = "black",alpha = alpha)
@@ -238,7 +239,7 @@ def shade(embedded_dataset,
     #First we split the dataset according predicted classes
     classes = []
     fig = plt.figure(dpi = 300)
-    plt.style.use('seaborn-v0_8-paper')    
+    plt.style.use("science")
     plt.figure(figsize=(15,10))
     plt.rcParams.update({'font.size': 40}) 
     colours = plt.rcParams['axes.prop_cycle'].by_key()['color'] * 100
@@ -552,7 +553,7 @@ def similarity_searchb(input_index = int,data = list,number_of_neighbors = 10,re
     return neighbors                
 
 
-def pca(data = list,n_components = 500, variance = 1,return_all = False,verbose = True, return_variance_dimension = False, comp_and_var = False):
+def pca(data = list,n_components = 500, variance = 1,return_all = False,verbose = True, return_variance_dimension = False):
 
     pca = IncrementalPCA(n_components =n_components)
     pca.fit(data)
@@ -574,10 +575,7 @@ def pca(data = list,n_components = 500, variance = 1,return_all = False,verbose 
     if return_all:
         return components
     else:
-        if comp_and_var:
-            return components[:,0:i], prefered_variance
-        else:
-            return components[:,0:i]
+        return components[:,0:i]
 
 
 def pca_slices(data = list,
