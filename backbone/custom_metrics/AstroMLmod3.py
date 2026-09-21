@@ -95,7 +95,6 @@ def two_point(data, bins, method='standard',
 
     DD = np.diff(counts_DD)
     RR = np.diff(counts_RR)
-    print(RR)
 
     # check for zero in the denominator
     RR_zero = (RR == 0)
