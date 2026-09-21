@@ -89,11 +89,13 @@ def galaxyzoo10(batch_size = 256,
                val_split = None,
                 resize = 224,
                 crop = 224,
+                data_path = 'Galaxy10_DECals.h5',
+                num_workers = 0,
                 ):
     
 
     # To get the images and labels from file
-    with h5py.File('Galaxy10_DECals.h5', 'r') as F:
+    with h5py.File(data_path, 'r') as F:
         images = np.array(F['images'])
         labels = np.array(F['ans'])
         ids = np.array(F['ra'])
@@ -106,7 +108,7 @@ def galaxyzoo10(batch_size = 256,
     images = images.astype(np.float16)
     
 
-    transformed_dataset = Custom.ArrayDataset(images = images,labels =labels,names = ids,resize = 224,crop = 224)
+    transformed_dataset = Custom.ArrayDataset(images = images, labels =labels, names = ids, resize =resize, crop =crop)
 
 
     if val_split is None and train_split is not None:
@@ -115,13 +117,19 @@ def galaxyzoo10(batch_size = 256,
 
     if val_split is None and train_split is None:
 
-        return torch.utils.data.DataLoader(transformed_dataset, batch_size=batch_size, shuffle=True)
+        return torch.utils.data.DataLoader(
+            transformed_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+        )
     
-    dataset_split = Custom.train_val_dataset(transformed_dataset, train_size = 0.7,val_split=0.3)
+    dataset_split = Custom.train_val_dataset(transformed_dataset, train_size=train_split, val_split=val_split)
     
 
-    train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(
+        dataset_split['train'], batch_size=batch_size, shuffle=True, num_workers=num_workers
+    )
 
-    test_loader = torch.utils.data.DataLoader(dataset_split['val'], batch_size=batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(
+        dataset_split['val'], batch_size=batch_size, shuffle=True, num_workers=num_workers
+    )
 
     return train_loader, test_loader
