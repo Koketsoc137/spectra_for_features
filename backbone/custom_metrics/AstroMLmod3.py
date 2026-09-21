@@ -132,7 +132,8 @@ def correlate_and_plot(data = list,
 
 
     """
-    Scale the data into a unit block. Center and pull the furthest point in to the edge of such a box
+    Center the data; direction (not scale) is what matters since two_point
+    L2-normalizes every row onto the unit hypersphere before measuring distance.
 
     """
     #Center, scale down the sample
@@ -141,20 +142,12 @@ def correlate_and_plot(data = list,
 
     #Center to 0,0,0,...
     data = data - Eff_mean
-    
-    #Scale by finding the furtherst point (or 95th percentile to aviod artifacts or statistical flukes)
-    
-    
-    distances = np.linalg.norm(data, axis=1)
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 100)*2
 
-    data = data/max_dist
-
-    max_dist = np.percentile(np.linalg.norm(data, axis=1), 68)*2
-
-
+    # chord distance on the unit hypersphere ranges [0, 2], corresponding to
+    # cosine similarity in [1, -1]; using a max of 1 previously truncated the
+    # correlation function to cosine similarities >= 0.5
     bins = np.linspace(0,
-                       1, 
+                       2, 
                        bin_number)
 
 
