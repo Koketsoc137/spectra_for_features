@@ -3,16 +3,15 @@
 #SBATCH --partition=GPU
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
+#SBATCH --mem=12G
 #SBATCH --time=12:00:00
-#SBATCH --output=logs/byol_galaxy10_%j.log
-#SBATCH --error=logs/byol_galaxy10_%j.log
+#SBATCH --output=/users/koketso/Feature_extraction/spectra_for_features/logs/byol_galaxy10_%j.log
+#SBATCH --error=/users/koketso/Feature_extraction/spectra_for_features/logs/byol_galaxy10_%j.log
 
 set -euo pipefail
 
 repo_dir="$(cd "$(dirname "$0")" && pwd)"
 cd "$repo_dir"
-mkdir -p logs
 
 source /idia/projects/camil/Koketso/.venv/deepclustering3/bin/activate
 
