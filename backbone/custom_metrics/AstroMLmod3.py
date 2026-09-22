@@ -114,10 +114,18 @@ def _gaussian_background(data, n_points, seed=None):
     )
 
 
-def cosine_tpcf_score(data, bin_number=100, background_factor=10, method="analytic", random_state=None, min_pairs=10):
+def cosine_tpcf_score(
+    data, bin_number=100, background_factor=10, method="analytic", random_state=None, min_pairs=10, min_dist=1e-3
+):
+    """2PCF score for `data`, measured via cosine similarity.
 
+    Bins are log-spaced in cosine distance from `min_dist` to 2: pairwise
+    distances concentrate tightly around a peak, so linear bins waste most
+    of their resolution on ranges with almost no pairs, while log bins
+    resolve the small-separation regime where a clustering signal shows up.
+    """
     data = np.asarray(data) - np.mean(data, axis=0)
-    bins = np.linspace(1e-6 if method == "analytic" else 0, 2, bin_number)
+    bins = np.logspace(np.log10(min_dist), np.log10(2), bin_number)
 
     background = None
     if method != "analytic":
