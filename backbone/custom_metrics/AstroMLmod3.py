@@ -34,8 +34,7 @@ def rr_fraction(bins, k):
     instead of estimated from noisy background samples.
     """
     a = 0.5 * (k - 1)
-    # (1 + cos) / 2 ~ Beta(a, a), with cos = 1 - d^2 / 2 for chord distance d
-    u = np.clip(1.0 - 0.25 * np.asarray(bins, dtype=float) ** 2, 0.0, 1.0)
+    u = np.clip(1.0 - 0.5 * np.asarray(bins, dtype=float), 0.0, 1.0)
     return -np.diff(betainc(a, a, u))
 
 
