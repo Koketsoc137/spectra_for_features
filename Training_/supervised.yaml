@@ -1,0 +1,30 @@
+training:
+  epochs: 100
+  checkpoint_interval: 10
+  learning_rate: 0.00005
+  batch_size: 64
+  device: cuda
+  seed: null  # null -> time-based seed
+
+data:
+  dataset_path: data_models/Galaxy10_DECals.h5
+  train_split: 0.7
+  val_split: 0.3
+  resize: 256
+  crop_size: 224
+  perturb_labels: true
+  perturb_percentage: 30
+
+model:
+  name: EfficientNet_B0
+  weights: IMAGENET1K_V1
+  num_classes: 10
+
+scheduler:
+  T_max: 100
+  eta_min: 0.0000001
+
+paths:
+  output_dir: data_
+  representations_dir: plots
+  artifact_prefix: supervised_galaxy10
