@@ -6,3 +6,10 @@ plots_early/
 scores_csv/
 results/
 
+
+# Local data, weights, outputs and caches
+data_/
+data_models/
+logs/
+__pycache__/
+.ipynb_checkpoints/

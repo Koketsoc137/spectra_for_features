@@ -12,6 +12,7 @@ set -euo pipefail
 
 repo_dir="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 cd "$repo_dir"
+export PYTHONPATH="$repo_dir${PYTHONPATH:+:$PYTHONPATH}"
 
 source /idia/projects/camil/Koketso/.venv/deepclustering3/bin/activate
 

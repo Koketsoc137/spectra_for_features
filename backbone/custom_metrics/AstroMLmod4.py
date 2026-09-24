@@ -99,7 +99,6 @@ def two_point(data, bins):
     KDT_D = BallTree(data, metric="euclidean")
     DD = np.diff(KDT_D.two_point_correlation(data, bins, dualtree=True))
 
-    # RR == DR in closed form, so Landy-Szalay (ApJ 412, 64, 1993) collapses
     # to the natural estimator; the sphere has no boundary to correct for.
     frac = rr_fraction(bins ** 2 / 2.0, n_features)
     zero = frac <= 0
@@ -157,10 +156,12 @@ def cosine_tpcf_score(
     block = _l2_normalize(Z)
 
     lo, hi = cos_dist_range
-    cos_edges = np.logspace(np.log10(lo), np.log10(hi), n_bins + 1)
-    euc_edges = np.sqrt(2.0 * cos_edges)
 
-    return float(np.nansum(two_point(block, euc_edges)))
+    #Compute the angular dristribution over which the 2PCF will be computed
+    bins = np.logspace(np.log10(lo), np.log10(hi), n_bins + 1)# here lo increased with increasing gaps through to li
+    
+
+    return float(np.nansum(two_point(block, bins)))
 
 
 # --------------------------------------------------------------------------
