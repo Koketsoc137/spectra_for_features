@@ -1,0 +1,52 @@
+training:
+  epochs: 100
+  checkpoint_interval: 10
+  learning_rate: 0.0001
+  batch_size: 128
+  num_workers: 30
+  device: cuda:0
+
+data:
+  dataset_path: data_models/Galaxy10_DECals.h5
+  train_split: 0.8
+  val_split: 0.2
+  resize: 224
+  crop_size: 224
+
+model:
+  name: EfficientNet_B0
+  weights: IMAGENET1K_V1
+  num_classes: 10
+  representation_layer: avgpool
+
+augmentation:
+  gaussian_blur_probability: 0.5
+  vertical_flip_probability: 0.5
+  horizontal_flip_probability: 0.5
+  rotation_probability: 0.7
+  random_crop_probability: 0.7
+  rotation_degrees: [0, 360]
+  rotation_crop_ratio: 0.71
+  random_crop_scale: [0.7, 1.0]
+  gaussian_blur_kernel_size: [3, 3]
+  gaussian_blur_sigma: [1, 2]
+
+dino:
+  num_classes_K: 4096
+  projection_hidden_size: 256
+  projection_layers: 4
+  student_temp: 0.1
+  teacher_temp: 0.04
+  local_upper_crop_scale: 0.4
+  global_lower_crop_scale: 0.5
+  moving_average_decay: 0.996
+  center_moving_average_decay: 0.9
+
+knn:
+  neighbors: 5
+
+paths:
+  output_dir: data_
+  artifact_prefix: dino_galaxy10
+  checkpoint_name: dino_galaxy10_efficientnet_b0.pt
+  best_checkpoint_name: best_dino_galaxy10_efficientnet_b0.pt

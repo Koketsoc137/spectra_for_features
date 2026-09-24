@@ -1,7 +1,7 @@
 import torch
 import os
 from pathlib import Path
-from byol_pytorch import BYOL
+from vit_pytorch.dino import Dino
 import backbone.data_handle.Custom as Custom
 import backbone.data_handle.GalaxyZoo as gz
 import torchvision as tv
@@ -78,7 +78,7 @@ def evaluate(learner, train_loader, val_loader, device, epoch, config):
     return val_loss, train_knn_score, val_knn_score, id_score, tpcf_score
 
 
-def train_byol(config):
+def train_dino(config):
     training_config = config["training"]
     data_config = config["data"]
     model_config = config["model"]
@@ -117,11 +117,22 @@ def train_byol(config):
         ),
     )
 
-    learner = BYOL(
+    dino_config = config["dino"]
+    learner = Dino(
         model,
         image_size=data_config["crop_size"],
         hidden_layer=model_config["representation_layer"],
         augment_fn=augment_fn,
+        augment_fn2=augment_fn,
+        num_classes_K=dino_config["num_classes_K"],
+        projection_hidden_size=dino_config["projection_hidden_size"],
+        projection_layers=dino_config["projection_layers"],
+        student_temp=dino_config["student_temp"],
+        teacher_temp=dino_config["teacher_temp"],
+        local_upper_crop_scale=dino_config["local_upper_crop_scale"],
+        global_lower_crop_scale=dino_config["global_lower_crop_scale"],
+        moving_average_decay=dino_config["moving_average_decay"],
+        center_moving_average_decay=dino_config["center_moving_average_decay"],
     )
     device = torch.device(training_config["device"])
     learner = learner.to(device)
@@ -145,7 +156,7 @@ def train_byol(config):
             opt.zero_grad()
             loss.backward()
             opt.step()
-            learner.update_moving_average() #update moving average of target encoder
+            learner.update_moving_average() #update moving average of teacher encoder and center
             loss_ += loss.item()
             loss_per_500 = loss_
             if i%5 ==0:
@@ -203,9 +214,18 @@ def train_byol(config):
                 'optimizer_state_dict': opt.state_dict(),
                 }, output_dir / path_config["checkpoint_name"])
 
+        if (epoch + 1) % training_config["checkpoint_interval"] == 0:
+            torch.save({
+                'epoch': epoch + 1,
+                'learner_state_dict': learner.state_dict(),
+                'optimizer_state_dict': opt.state_dict(),
+                'loss_history': loss_history,
+                'knn_history': knn_history,
+            }, output_dir / f"{path_config['artifact_prefix']}_epoch_{epoch + 1}.pt")
+
 
 if __name__ == "__main__":
     config_path = Path(__file__).with_suffix(".yaml")
     with config_path.open() as config_file:
         config = yaml.safe_load(config_file)
-    train_byol(config)
+    train_dino(config)
