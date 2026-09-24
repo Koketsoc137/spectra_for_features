@@ -13,10 +13,11 @@ import random
 
 import numpy as np
 from scipy.special import betainc
+from sklearn.decomposition import PCA
 from sklearn.neighbors import BallTree
 from sklearn.utils import check_random_state
 
-from ..visuals import Distributions as dist
+from ..data_handle import Distributions as dist
 from ..visuals import VISUAL as viz
 
 
@@ -44,12 +45,14 @@ def _pair_counts(vectors, bins):
     return np.diff(tree.two_point_correlation(vectors, bins))
 
 
-def two_point_correlation(data, bins, background=None, method="standard", min_pairs=10):
+def two_point_correlation(data, bins, background=None, method="standard", min_pairs=10, metric="cosine"):
     """Two-point correlation of `data` against a comparison background.
 
-    `data` (and `background`, if given) are unit-normalized before counting,
-    so `bins` are chord distances on the unit sphere in [0, 2] (cosine
-    similarity in [1, -1]).
+    With metric="cosine", `data` (and `background`, if given) are
+    unit-normalized before counting, so `bins` are chord distances on the
+    unit sphere in [0, 2] (cosine similarity in [1, -1]). With
+    metric="euclidean", raw Euclidean distances are used and only the
+    sampled-background methods apply.
 
     Parameters
     ----------
@@ -76,8 +79,13 @@ def two_point_correlation(data, bins, background=None, method="standard", min_pa
     """
     if method not in ("standard", "landy-szalay", "analytic"):
         raise ValueError("method must be 'standard', 'landy-szalay', or 'analytic'")
+    if metric not in ("cosine", "euclidean"):
+        raise ValueError("metric must be 'cosine' or 'euclidean'")
+    if metric == "euclidean" and method == "analytic":
+        raise ValueError("method='analytic' assumes points on the unit sphere; use metric='cosine'")
 
-    data = _unit_normalize(np.asarray(data))
+    normalize = _unit_normalize if metric == "cosine" else np.asarray
+    data = normalize(np.asarray(data))
     bins = np.asarray(bins, dtype=float)
     n = len(data)
     DD = _pair_counts(data, bins)
@@ -90,7 +98,7 @@ def two_point_correlation(data, bins, background=None, method="standard", min_pa
         RR_safe = np.where(dropped, 1, RR)
         corr = DD / RR_safe - 1
     else:
-        background = _unit_normalize(np.asarray(background))
+        background = normalize(np.asarray(background))
         factor = len(background) / n
         RR = _pair_counts(background, bins)
         dropped = RR < min_pairs
@@ -115,7 +123,13 @@ def _gaussian_background(data, n_points, seed=None):
 
 
 def cosine_tpcf_score(
-    data, bin_number=100, background_factor=10, method="analytic", random_state=None, min_pairs=10, min_dist=1e-3
+    data, bin_number=100, 
+    background_factor=10, 
+    method="analytic",
+    random_state=None, 
+    min_pairs=10,
+    min_dist=1e-3,
+    metric="cosine",
 ):
     """2PCF score for `data`, measured via cosine similarity.
 
@@ -125,26 +139,41 @@ def cosine_tpcf_score(
     resolve the small-separation regime where a clustering signal shows up.
     """
     data = np.asarray(data) - np.mean(data, axis=0)
-    bins = np.logspace(np.log10(min_dist), np.log10(2), bin_number)
+    # cosine: chord distances lie in [0, 2]; euclidean: 2 * max norm bounds any pair distance
+    max_dist = 2 if metric == "cosine" else 2 * np.linalg.norm(data, axis=1).max()
+    bins = np.logspace(np.log10(min_dist), np.log10(max_dist), bin_number)
 
     background = None
     if method != "analytic":
         rng = check_random_state(random_state)
         background = _gaussian_background(data, background_factor * len(data), seed=rng.randint(0, 10_000))
 
-    corr = two_point_correlation(data, bins, background=background, method=method, min_pairs=min_pairs)
+    corr = two_point_correlation(
+        data, bins, background=background, method=method, min_pairs=min_pairs, metric=metric
+    )
     return np.nanmean(corr)
 
 
-def TPCF_score(representations, epoch=0, sub_sample=0.3, Nbootstrap=5, verbose=False, method="analytic"):
+def TPCF_score(
+    representations,
+    epoch=0,
+     sub_sample=0.3,
+    Nbootstrap=5,
+    verbose=False,
+    method="analytic",
+    metric="cosine"
+):
     representations = np.asarray(representations, dtype=float)
     sample_size = int(len(representations) * sub_sample)
 
+    # PCA once on all points, then subsample; sklearn PCA spans the same
+    # subspace as viz.pca (IncrementalPCA) but is ~30x faster on the full set
+    reduced = PCA(n_components=15).fit_transform(representations)
+
     scores = []
     for _ in range(Nbootstrap):
-        indices = random.sample(range(len(representations)), sample_size)
-        reduced = viz.pca(representations[indices, :], n_components=15, verbose=verbose)
-        scores.append(cosine_tpcf_score(reduced, method=method))
+        indices = random.sample(range(len(reduced)), sample_size)
+        scores.append(cosine_tpcf_score(reduced[indices, :], method=method, metric=metric))
 
     scores = np.ma.masked_invalid(scores)
     return round(scores.mean(), 2), round(scores.std(ddof=1), 2)

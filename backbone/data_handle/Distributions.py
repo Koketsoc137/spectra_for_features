@@ -290,7 +290,7 @@ def precompute_RR(bins = np.linspace(0, 1.5, 100),
                                                 bins)
     
         RR = np.diff(counts_RR)
-    
+
         return RR
         
 
