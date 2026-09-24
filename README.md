@@ -22,7 +22,7 @@ and kNN accuracy.
 | `Training_/byol.py` | `byol.sh` | BYOL self-supervised training (EfficientNet-B0) |
 | `Training_/dino.py` | `dino.sh` | DINO self-supervised training (EfficientNet-B0) |
 | `Training_/supervised.py` | `supervised.sh` | Supervised training with optional label noise |
-| `Training_/gz_foundation_models.py` | `TrainSBatch.sh` | Extracts features from pretrained models (Zoobot, DINOv3, ImageNet) |
+| `Training_/gz_foundation_models.py` | `foundation_models.sh` | Extracts features from pretrained models (Zoobot, DINOv3, ImageNet) |
 
 Each training run logs loss, kNN accuracy, ID and TPCF scores per epoch and writes checkpoints and CSVs to
 `data_/` using the run's `artifact_prefix` (e.g. `byol_galaxy10_*`).
@@ -30,7 +30,7 @@ Each training run logs loss, kNN accuracy, ID and TPCF scores per epoch and writ
 ## Usage
 
 ```bash
-sbatch byol.sh          # or dino.sh / supervised.sh / TrainSBatch.sh
+sbatch byol.sh          # or dino.sh / supervised.sh / foundation_models.sh
 ```
 
 Place `Galaxy10_DECals.h5` in `data_models/`. Python dependencies: `requirements.txt`, plus `byol-pytorch`
