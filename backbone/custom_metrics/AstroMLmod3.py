@@ -168,7 +168,7 @@ def TPCF_score(
 
     # PCA once on all points, then subsample; sklearn PCA spans the same
     # subspace as viz.pca (IncrementalPCA) but is ~30x faster on the full set
-    reduced = PCA(n_components=15).fit_transform(representations)
+    reduced = PCA(n_components=min(15, representations.shape[1])).fit_transform(representations)
 
     scores = []
     for _ in range(Nbootstrap):

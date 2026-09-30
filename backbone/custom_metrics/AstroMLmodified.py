@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KDTree
 from sklearn.utils import check_random_state
 import random
-from ..visuals import Distributions as dist
+from ..data_handle import Distributions as dist
 from ..visuals import VISUAL as viz
     
 import math

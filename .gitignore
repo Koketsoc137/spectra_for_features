@@ -9,4 +9,5 @@
 !*.sh
 !**/*.py
 !**/*.sh
+!noteonooks/autocorrelation.ipynb
 
