@@ -93,9 +93,9 @@ def galaxyzoo10(config):
 
     dataset_split['val'].dataset.eval_mode = False
     
-    train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(dataset_split['train'], batch_size=batch_size, shuffle=True, num_workers=config["training"]["num_workers"])
 
-    test_loader = torch.utils.data.DataLoader(dataset_split['val'], batch_size=batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(dataset_split['val'], batch_size=batch_size, shuffle=True, num_workers=config["training"]["num_workers"])
 
     return train_loader, test_loader
     

@@ -3,6 +3,7 @@ training:
   checkpoint_interval: 10
   learning_rate: 0.00005
   batch_size: 64
+  num_workers: 8
   device: cuda
   seed: null  # null -> time-based seed
 
