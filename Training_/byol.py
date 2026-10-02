@@ -1,4 +1,6 @@
 import torch
+import torch.distributed as dist
+from datetime import timedelta
 import os
 from pathlib import Path
 from byol_pytorch import BYOL
@@ -87,7 +89,17 @@ def train_byol(config):
     path_config = config["paths"]
     output_dir = Path(__file__).resolve().parents[1] / path_config["output_dir"]
     os.makedirs(output_dir, exist_ok=True)
-    wandb.init(project="galaxy10_ssl", name=path_config["artifact_prefix"], config=config, mode="offline", dir=output_dir)
+    distributed = int(os.environ.get("WORLD_SIZE", 1)) > 1
+    rank = int(os.environ.get("RANK", 0))
+    if distributed:
+        local_rank = int(os.environ["LOCAL_RANK"])
+        torch.cuda.set_device(local_rank)
+        dist.init_process_group("nccl", timeout=timedelta(hours=3))
+        device = torch.device(f"cuda:{local_rank}")
+    else:
+        device = torch.device(training_config["device"])
+    if rank == 0:
+        wandb.init(project="galaxy10_ssl", name=path_config["artifact_prefix"], config=config, mode="offline", dir=output_dir)
 
     best_loss = float("inf")
     model = tv.models.efficientnet_b0(
@@ -96,7 +108,14 @@ def train_byol(config):
     model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, model_config["num_classes"])
     model.classifier[1].weight.data.normal_(0, 0.01)
 
+    model = model.to(device)
     loader, val_loader = get_data_loaders(config)
+    train_loader = loader
+    if distributed:
+        #each GPU gets its own shard of the training set and half of the batch
+        sampler = torch.utils.data.distributed.DistributedSampler(loader.dataset)
+        train_loader = torch.utils.data.DataLoader(loader.dataset, batch_size=training_config["batch_size"] // dist.get_world_size(),
+                                                   sampler=sampler, num_workers=training_config["num_workers"])
 
     augment_fn = torch.nn.Sequential(
         Custom.RandomRotationWithCrop(
@@ -125,8 +144,9 @@ def train_byol(config):
         hidden_layer=model_config["representation_layer"],
         augment_fn=augment_fn,
     )
-    device = torch.device(training_config["device"])
     learner = learner.to(device)
+    train_learner = torch.nn.parallel.DistributedDataParallel(learner, device_ids=[device.index], find_unused_parameters=True) if distributed else learner
+    scaler = torch.amp.GradScaler("cuda")
 
     opt = torch.optim.Adam(learner.parameters(), lr=training_config["learning_rate"])
     loss_history = []
@@ -136,24 +156,32 @@ def train_byol(config):
 
         loss_ = 0.0
         learner.train()
-        for i,Images in enumerate(loader):
+        if distributed:
+            sampler.set_epoch(epoch)
+        for i,Images in enumerate(train_loader):
             Images = Images[0]
             #send imaged to device
             images = Images.to(device)
             #optain loss
-            loss = learner(images)
+            with torch.autocast(device_type="cuda", dtype=torch.float16):
+                loss = train_learner(images)
 
             #optimization steps
             opt.zero_grad()
-            loss.backward()
-            opt.step()
+            scaler.scale(loss).backward()
+            scaler.step(opt)
+            scaler.update()
             learner.update_moving_average() #update moving average of target encoder
             loss_ += loss.item()
             loss_per_500 = loss_
-            if i%5 ==0:
+            if i%5 ==0 and rank == 0:
                 print("Batch epoch :"+ str(epoch) + " Loss :" + str(loss.item()))
 
-        train_loss = loss_ / len(loader)
+        train_loss = loss_ / len(train_loader)
+        #evaluation, logging and checkpointing run on rank 0 only
+        if rank != 0:
+            dist.barrier()
+            continue
         val_loss, train_knn_score, val_knn_score, id_score, tpcf_score = evaluate(
             learner, loader, val_loader, device, epoch, config
         )
@@ -213,6 +241,12 @@ def train_byol(config):
                 'loss_history': loss_history,
                 'knn_history': knn_history,
             }, output_dir / f"{path_config['artifact_prefix']}_epoch_{epoch + 1}.pt")
+
+        if distributed:
+            dist.barrier()
+
+    if distributed:
+        dist.destroy_process_group()
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=dino_galaxy10
 #SBATCH --partition=GPU
-#SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
+#SBATCH --gres=gpu:2
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
 #SBATCH --time=12:00:00
 #SBATCH --output=/users/koketso/Feature_extraction/spectra_for_features/logs/dino_galaxy10_%j.log
 #SBATCH --error=/users/koketso/Feature_extraction/spectra_for_features/logs/dino_galaxy10_%j.log
@@ -19,6 +19,7 @@ source /idia/projects/camil/Koketso/.venv/deepclustering3/bin/activate
 echo "Job started on $(hostname) at $(date)"
 echo "Using environment: $(which python)"
 
-python -u Training_/dino.py
+export PYTHONUNBUFFERED=1
+torchrun --standalone --nproc_per_node=2 Training_/dino.py
 
 echo "Job finished at $(date)"
