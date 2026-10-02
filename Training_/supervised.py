@@ -9,6 +9,7 @@ import backbone.visuals.VISUAL as viz
 import importlib
 import matplotlib.pyplot as plt
 import backbone.custom_metrics.AstroMLmod3 as AstroMLmod
+import backbone.custom_metrics.Intrinsic_dimension as ID
 import numpy as np
 import backbone.custom_metrics.TwoNN as TwoNN
 import time
@@ -223,8 +224,8 @@ def train_resnet(config):
 
 
     #conpute the id_score
-    id_score_test,std_test = AstroMLmod.id_score(test_representations)
-    id_score_train,std_train = AstroMLmod.id_score(train_representations)
+    id_score_test,std_test = ID.id_score(test_representations)
+    id_score_train,std_train = ID.id_score(train_representations)
     
     ID_scores.append((id_score_test,std_test,id_score_train,std_train))
 
@@ -278,16 +279,16 @@ def train_resnet(config):
             id_stuff here
             
             test_representations,test_labels = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
-            #id_score,std = AstroMLmod.id_score(test_representations)
+            #id_score,std = ID.id_score(test_representations)
             loss = loss*(id_score/100)
             """
 
             loss.backward()
             optimizer.step()
-            scheduler.step()
-            
-            #running_loss += loss.item()
-        
+
+            running_loss += loss.item()
+
+        scheduler.step()
         print(f'Epoch [{epoch}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
         model.eval()
         """
@@ -306,8 +307,8 @@ def train_resnet(config):
 
 
         #conpute the id_score
-        id_score_test,std_test = AstroMLmod.id_score(test_representations)
-        id_score_train,std_train = AstroMLmod.id_score(train_representations)
+        id_score_test,std_test = ID.id_score(test_representations)
+        id_score_train,std_train = ID.id_score(train_representations)
 
         ID_scores.append((id_score_test,std_test,id_score_train,std_train))
 

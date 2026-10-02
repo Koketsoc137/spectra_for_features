@@ -3,7 +3,7 @@
 #SBATCH --partition=GPU
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=12G
+#SBATCH --mem=32G
 #SBATCH --time=12:00:00
 #SBATCH --output=/users/koketso/Feature_extraction/spectra_for_features/logs/dino_galaxy10_%j.log
 #SBATCH --error=/users/koketso/Feature_extraction/spectra_for_features/logs/dino_galaxy10_%j.log

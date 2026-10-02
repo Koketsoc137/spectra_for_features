@@ -8,6 +8,7 @@ import torchvision as tv
 import kornia.augmentation as K
 import kornia
 import backbone.custom_metrics.AstroMLmod3 as AstroMLmod
+import backbone.custom_metrics.Intrinsic_dimension as ID
 import wandb
 import pandas as pd
 import yaml
@@ -73,7 +74,7 @@ def evaluate(learner, train_loader, val_loader, device, epoch, config):
     train_df.insert(1, "label", train_labels)
     train_df.to_csv(output_dir / f"{artifact_prefix}_train_representations_epoch_{epoch}.csv", index=False)
 
-    id_score, _ = AstroMLmod.id_score(val_features)
+    id_score, _ = ID.id_score(val_features)
     tpcf_score, _ = AstroMLmod.TPCF_score(val_features)
     return val_loss, train_knn_score, val_knn_score, id_score, tpcf_score
 
@@ -86,6 +87,7 @@ def train_dino(config):
     path_config = config["paths"]
     output_dir = Path(__file__).resolve().parents[1] / path_config["output_dir"]
     os.makedirs(output_dir, exist_ok=True)
+    wandb.init(project="galaxy10_ssl", name=path_config["artifact_prefix"], config=config, mode="offline", dir=output_dir)
 
     best_loss = float("inf")
     model = tv.models.efficientnet_b0(

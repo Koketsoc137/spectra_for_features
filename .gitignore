@@ -13,3 +13,6 @@ data_models/
 logs/
 __pycache__/
 .ipynb_checkpoints/
+
+# Claude Code instructions
+CLAUDE.md
