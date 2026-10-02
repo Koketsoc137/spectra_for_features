@@ -21,6 +21,7 @@ from sklearn.utils.class_weight import compute_class_weight
 import copy
 import os
 import yaml
+import wandb
 from pathlib import Path
 
 
@@ -155,6 +156,7 @@ def train_resnet(config):
     artifact_prefix = path_config["artifact_prefix"]
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(representations_dir, exist_ok=True)
+    wandb.init(project="galaxy10_ssl", name=artifact_prefix, config=config, mode="offline", dir=output_dir)
 
     """
 
@@ -318,6 +320,14 @@ def train_resnet(config):
 
 
         TPCF_scores.append((TPCF_score_val,TPCF_score_train))
+        wandb.log({
+            "Training epoch loss": running_loss/len(train_loader),
+            "Validation epoch loss": float(val_loss)/len(test_loader),
+            "Train accuracy": train,
+            "Validation accuracy": val,
+            "ID score": float(id_score_test),
+            "TPCF_score": float(TPCF_score_val[0]),
+        })
 
 
 
