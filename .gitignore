@@ -9,5 +9,7 @@
 !*.sh
 !**/*.py
 !**/*.sh
-!noteonooks/autocorrelation.ipynb
+!notebooks/autocorrelation.ipynb
+!README.md
+!notebooks/Test_metrics_grid.png
 
