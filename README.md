@@ -4,6 +4,14 @@ Measures the quality of deep-learning representations of galaxy images (Galaxy10
 astronomy-style statistics: the two-point correlation function (TPCF) score, intrinsic dimension (TwoNN)
 and kNN accuracy.
 
+## Metrics over training
+
+![Test-set representation metrics per epoch](notebooks/Test_metrics_grid.png)
+
+Good representations tend to have lower-dimensional, anisotropic manifolds: as KNN accuracy improves over training, the intrinsic dimension falls and the variance concentrates in a small number of directions.
+
+The figure is produced by [notebooks/Model_TPCF_scores.ipynb](notebooks/Model_TPCF_scores.ipynb).
+
 ## Layout
 
 | Path | Contents |
@@ -12,7 +20,7 @@ and kNN accuracy.
 | `backbone/custom_metrics/` | TPCF score (`AstroMLmod*`), intrinsic dimension (`TwoNN`, `Intrinsic_dimension`) |
 | `backbone/data_handle/` | Datasets, loaders and augmentations (`GalaxyZoo`, `Custom`) |
 | `backbone/visuals/` | Plotting helpers |
-| `notebooks_scripts/` | Analysis notebooks and plotting scripts |
+| `notebooks/` | Analysis notebooks and plotting scripts |
 | `*.sh` | SLURM job scripts (ilifu) |
 
 ## Scripts
