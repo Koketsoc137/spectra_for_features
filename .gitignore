@@ -12,7 +12,7 @@ results/
 
 # Local data, weights, outputs and caches
 data_/
-data_models/
+data_models
 logs/
 wandb/
 __pycache__/
