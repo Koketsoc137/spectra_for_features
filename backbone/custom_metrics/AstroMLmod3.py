@@ -130,18 +130,21 @@ def cosine_tpcf_score(
     min_pairs=10,
     min_dist=1e-3,
     metric="cosine",
+    bin_scale="linear",
 ):
     """2PCF score for `data`, measured via cosine similarity.
 
-    Bins are log-spaced in cosine distance from `min_dist` to 2: pairwise
-    distances concentrate tightly around a peak, so linear bins waste most
-    of their resolution on ranges with almost no pairs, while log bins
+    Bins run from `min_dist` to the maximum distance, spaced linearly
+    (bin_scale="linear") or logarithmically (bin_scale="log"); log bins
     resolve the small-separation regime where a clustering signal shows up.
     """
     data = np.asarray(data) - np.mean(data, axis=0)
     # cosine: chord distances lie in [0, 2]; euclidean: 2 * max norm bounds any pair distance
     max_dist = 2 if metric == "cosine" else 2 * np.linalg.norm(data, axis=1).max()
-    bins = np.logspace(np.log10(min_dist), np.log10(max_dist), bin_number)
+    if bin_scale == "log":
+        bins = np.logspace(np.log10(min_dist), np.log10(max_dist), bin_number)
+    else:
+        bins = np.linspace(min_dist, max_dist, bin_number)
 
     background = None
     if method != "analytic":
@@ -157,11 +160,12 @@ def cosine_tpcf_score(
 def TPCF_score(
     representations,
     epoch=0,
-     sub_sample=0.3,
+    sub_sample=0.3,
     Nbootstrap=5,
     verbose=False,
     method="analytic",
-    metric="cosine"
+    metric="cosine",
+    bin_scale="linear",
 ):
     representations = np.asarray(representations, dtype=float)
     sample_size = int(len(representations) * sub_sample)
@@ -173,7 +177,7 @@ def TPCF_score(
     scores = []
     for _ in range(Nbootstrap):
         indices = random.sample(range(len(reduced)), sample_size)
-        scores.append(cosine_tpcf_score(reduced[indices, :], method=method, metric=metric))
+        scores.append(cosine_tpcf_score(reduced[indices, :], method=method, metric=metric, bin_scale=bin_scale))
 
     scores = np.ma.masked_invalid(scores)
     return round(scores.mean(), 2), round(scores.std(ddof=1), 2)
