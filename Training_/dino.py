@@ -18,10 +18,23 @@ from sklearn.neighbors import KNeighborsClassifier
 
 
 def get_data_loaders(config):
+    #returns (train, val, knn_train, knn_test): Galaxy10 scores kNN on its own train/val, radio on MiraBest train/test
     data_config = config["data"]
     training_config = config["training"]
+    if data_config.get("dataset", "galaxy10") == "radio":
+        return gz.radio_galaxy_zoo_data_loaders(
+            rgz_dir=data_config["rgz_dir"],
+            mirabest_dir=data_config["mirabest_dir"],
+            mirabest_subset=data_config["mirabest_subset"],
+            train_split=data_config["train_split"],
+            val_split=data_config["val_split"],
+            batch_size=training_config["batch_size"],
+            resize=data_config["resize"],
+            crop_size=data_config["crop_size"],
+            num_workers=training_config["num_workers"],
+        )
     data_path = Path(__file__).resolve().parents[1] / data_config["dataset_path"]
-    return gz.galaxyzoo10(
+    train_loader, val_loader = gz.galaxyzoo10(
         train_split=data_config["train_split"],
         val_split=data_config["val_split"],
         batch_size=training_config["batch_size"],
@@ -30,9 +43,10 @@ def get_data_loaders(config):
         data_path=data_path,
         num_workers=training_config["num_workers"],
     )
+    return train_loader, val_loader, train_loader, val_loader
 
 
-def evaluate(learner, train_loader, val_loader, device, epoch, config):
+def evaluate(learner, val_loader, knn_train_loader, knn_test_loader, device, epoch, config):
     knn_config = config["knn"]
     path_config = config["paths"]
     output_dir = Path(__file__).resolve().parents[1] / path_config["output_dir"]
@@ -55,17 +69,26 @@ def evaluate(learner, train_loader, val_loader, device, epoch, config):
             val_names.extend(names)
             val_labels.extend(labels.tolist())
 
-        for images, labels, names in train_loader:
+        for images, labels, names in knn_train_loader:
             embeddings = learner(images.to(device), return_embedding=True)[1]
             train_features.extend(embeddings.cpu().tolist())
             train_names.extend(names)
             train_labels.extend(labels.tolist())
 
+        test_features, test_names, test_labels = val_features, val_names, val_labels
+        if knn_test_loader is not val_loader:
+            test_features, test_names, test_labels = [], [], []
+            for images, labels, names in knn_test_loader:
+                embeddings = learner(images.to(device), return_embedding=True)[1]
+                test_features.extend(embeddings.cpu().tolist())
+                test_names.extend(names)
+                test_labels.extend(labels.tolist())
+
     val_loss /= len(val_loader)
     knn = KNeighborsClassifier(n_neighbors=knn_config["neighbors"])
     knn.fit(train_features, train_labels)
     train_knn_score = knn.score(train_features, train_labels) * 100
-    val_knn_score = knn.score(val_features, val_labels) * 100
+    val_knn_score = knn.score(test_features, test_labels) * 100
 
     val_df = pd.DataFrame(val_features)
     val_df.insert(0, "Image_names", val_names)
@@ -75,6 +98,11 @@ def evaluate(learner, train_loader, val_loader, device, epoch, config):
     train_df.insert(0, "Image_names", train_names)
     train_df.insert(1, "label", train_labels)
     train_df.to_csv(output_dir / f"{artifact_prefix}_train_representations_epoch_{epoch}.csv", index=False)
+    if knn_test_loader is not val_loader:
+        test_df = pd.DataFrame(test_features)
+        test_df.insert(0, "Image_names", test_names)
+        test_df.insert(1, "label", test_labels)
+        test_df.to_csv(output_dir / f"{artifact_prefix}_knn_test_representations_epoch_{epoch}.csv", index=False)
 
     id_score, _ = ID.id_score(val_features)
     tpcf_score, _ = AstroMLmod.TPCF_score(val_features)
@@ -109,7 +137,7 @@ def train_dino(config):
     model.classifier[1].weight.data.normal_(0, 0.01)
 
     model = model.to(device)
-    loader, val_loader = get_data_loaders(config)
+    loader, val_loader, knn_train_loader, knn_test_loader = get_data_loaders(config)
     train_loader = loader
     if distributed:
         #each GPU gets its own shard of the training set and half of the batch
@@ -194,7 +222,7 @@ def train_dino(config):
             dist.barrier()
             continue
         val_loss, train_knn_score, val_knn_score, id_score, tpcf_score = evaluate(
-            learner, loader, val_loader, device, epoch, config
+            learner, val_loader, knn_train_loader, knn_test_loader, device, epoch, config
         )
         loss_history.append({
             "epoch": epoch,
@@ -261,7 +289,7 @@ def train_dino(config):
 
 
 if __name__ == "__main__":
-    config_path = Path(__file__).with_suffix(".yaml")
+    config_path = Path(os.environ.get("CONFIG", Path(__file__).with_suffix(".yaml")))
     with config_path.open() as config_file:
         config = yaml.safe_load(config_file)
     train_dino(config)

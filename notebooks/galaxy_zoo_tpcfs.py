@@ -1,7 +1,7 @@
 """
 TPCF comparison analysis: 2PCF score vs Davies-Bouldin and vs clustering accuracy,
 across all foundation-model representations written by gz_foundation_models.py
-(<name>_val.parquet / <name>_class.parquet). Also computes ID, cosine similarity,
+(<name>_full.parquet / <name>_class.parquet). Also computes ID, cosine similarity,
 anisotropy and KNN accuracy, as in deep_features.ipynb.
 
 Saves:
@@ -56,12 +56,12 @@ def pickle_dump(obj, path):
 # ---------------------------------------------------------------------------
 
 direc = "/idia/projects/camil/Koketso/galaxy_zoo_representations/"
-models = [os.path.basename(p)[: -len("_val.parquet")] for p in sorted(glob.glob(direc + "*_val.parquet"))
-          if os.path.exists(p.replace("_val.parquet", "_class.parquet"))]
+models = [os.path.basename(p)[: -len("_full.parquet")] for p in sorted(glob.glob(direc + "*_full.parquet"))
+          if os.path.exists(p.replace("_full.parquet", "_class.parquet"))]
 
 rows = []
 for name in models:
-    rep, _, ids = open_embeds(direc + f"{name}_val.parquet")
+    rep, _, ids = open_embeds(direc + f"{name}_full.parquet")
     rep_c, label_c, ids_c = open_embeds(direc + f"{name}_class.parquet")
     print(f"{name}: rep={rep.shape}, rep_c={rep_c.shape}")
 

@@ -11,9 +11,16 @@ import importlib
 import backbone.custom_metrics.AstroMLmodified as AstroMLmod
 import os
 import pandas as pd
+import yaml
+from pathlib import Path
+from torch.utils.data import ConcatDataset
 
-WEIGHTS_DIR = "data_models"
-REP_DIR = "/idia/projects/camil/Koketso/galaxy_zoo_representations"
+#settings come from gz_foundation_models.yaml, or the file named by CONFIG (e.g. gz_foundation_models_radio.yaml)
+config = yaml.safe_load(open(os.environ.get("CONFIG", Path(__file__).with_suffix(".yaml"))))
+data_config = config["data"]
+
+WEIGHTS_DIR = config["paths"]["weights_dir"]
+REP_DIR = config["paths"]["rep_dir"]
 os.makedirs(REP_DIR, exist_ok=True)
 
 def rep_path(name):
@@ -33,26 +40,34 @@ def save_representations(name, rep, labels, ids):
 
 #loading the data
 
-train,val,class_  = gz.Galaxy_zoo_data_loaders(train_split = 0.8, num_workers = 30)
+if data_config["dataset"] == "radio":
+    #RGZ FIRST for train/val; all of MiraBest (train + test) is the labelled "class" set used for accuracy
+    train, val, mirabest_train, mirabest_test = gz.radio_galaxy_zoo_data_loaders(rgz_dir = data_config["rgz_dir"],
+                                                                              mirabest_dir = data_config["mirabest_dir"],
+                                                                              mirabest_subset = data_config["mirabest_subset"],
+                                                                              train_split = data_config["train_split"],
+                                                                              num_workers = data_config["num_workers"])
+    class_ = DataLoader(ConcatDataset([mirabest_train.dataset, mirabest_test.dataset]), 128, num_workers = data_config["num_workers"])
+else:
+    train,val,class_  = gz.Galaxy_zoo_data_loaders(galaxyzoo_dir = data_config["galaxyzoo_dir"],
+                                                   galaxyzooq_dir = data_config["galaxyzoo_class_dir"],
+                                                   train_split = data_config["train_split"],
+                                                   num_workers = data_config["num_workers"])
 
 
-def evaluate_model(name, load_model, unlabeled_loader):
-    #skip encoders whose representations were already saved by a previous run
-    if all(os.path.exists(rep_path(f"{name}_{split}")) for split in ("val", "class")):
+def evaluate_model(name, load_model):
+    #every encoder gets train, val and class splits; splits saved by a previous run are skipped
+    loaders = {"train": train, "val": val, "class": class_}
+    missing = [split for split in loaders if not os.path.exists(rep_path(f"{name}_{split}"))]
+    if not missing:
         print(f"[{name}] representations already exist in {REP_DIR}, skipping.")
         return
 
-    #extract representations for one encoder and persist them as parquet
     model = load_model()
-    print(f"[{name}] extracting unlabeled representations...")
-    rep, label, rep_ids = Custom.get_representations(model=model, loader=unlabeled_loader, encoder=True, labeled=False)
-
-    print(f"[{name}] extracting labeled representations...")
-    rep_c, label_c, rep_ids_c = Custom.get_representations(model=model, loader=class_, encoder=True, labeled=True)
-
-    print(f"[{name}] saving representations to parquet...")
-    save_representations(f"{name}_val", rep, label, rep_ids)
-    save_representations(f"{name}_class", rep_c, label_c, rep_ids_c)
+    for split in missing:
+        print(f"[{name}] extracting {split} representations...")
+        rep, label, rep_ids = Custom.get_representations(model=model, loader=loaders[split], encoder=True, labeled=(split == "class"))
+        save_representations(f"{name}_{split}", rep, label, rep_ids)
     print(f"[{name}] done.")
 
     #free the encoder before loading the next one
@@ -62,42 +77,36 @@ def evaluate_model(name, load_model, unlabeled_loader):
 
 ## Model: Zoobot ConvNext Base
 evaluate_model("zoobot_convnext_base",
-               lambda: timm.create_model('hf_hub:mwalmsley/zoobot-encoder-convnext_base', pretrained=True, num_classes=0),
-               val)
+               lambda: timm.create_model('hf_hub:mwalmsley/zoobot-encoder-convnext_base', pretrained=True, num_classes=0))
 
 
 ## Model: Zoobot ConvNext Large
 evaluate_model("zoobot_convnext_large",
-               lambda: timm.create_model('hf_hub:mwalmsley/zoobot-encoder-convnext_large', pretrained=True, num_classes=0),
-               val)
+               lambda: timm.create_model('hf_hub:mwalmsley/zoobot-encoder-convnext_large', pretrained=True, num_classes=0))
 
 
 ## Model: DINOv3 ConvNext Base
 evaluate_model("dinov3_convnext_base",
                lambda: torch.hub.load("../dinov3", 'dinov3_convnext_base', source='local',
-                                      weights=os.path.join(WEIGHTS_DIR, "dinov3_convnext_base_pretrain_lvd1689m-801f2ba9.pth")),
-               val)
+                                      weights=os.path.join(WEIGHTS_DIR, "dinov3_convnext_base_pretrain_lvd1689m-801f2ba9.pth")))
 
 
 ## Model: DINOv3 ConvNext Large
 evaluate_model("dinov3_convnext_large",
                lambda: torch.hub.load("../dinov3", 'dinov3_convnext_large', source='local',
-                                      weights=os.path.join(WEIGHTS_DIR, "dinov3_convnext_large_pretrain_lvd1689m-61fa432d.pth")),
-               val)
+                                      weights=os.path.join(WEIGHTS_DIR, "dinov3_convnext_large_pretrain_lvd1689m-61fa432d.pth")))
 
 
 ## Model: DINOv3 ViT-H/16+
 evaluate_model("dinov3_vith16plus",
                lambda: torch.hub.load("../dinov3", 'dinov3_vith16plus', source='local',
-                                      weights=os.path.join(WEIGHTS_DIR, "dinov3_vith16plus_pretrain_lvd1689m-7c1da9a5.pth")),
-               train)
+                                      weights=os.path.join(WEIGHTS_DIR, "dinov3_vith16plus.pth")))
 
 
 ## Model: DINOv3 ViT-S/16
 evaluate_model("dinov3_vits16",
                lambda: torch.hub.load("../dinov3", 'dinov3_vits16', source='local',
-                                      weights=os.path.join(WEIGHTS_DIR, "dinov3_vits16.pth")),
-               train)
+                                      weights=os.path.join(WEIGHTS_DIR, "dinov3_vits16.pth")))
 
 
 ## Model: ImageNet ConvNext Base
@@ -106,7 +115,7 @@ def load_imnet_convnext_base():
     model.classifier[-1] = torch.nn.Identity()
     return model
 
-evaluate_model("imagenet_convnext_base", load_imnet_convnext_base, train)
+evaluate_model("imagenet_convnext_base", load_imnet_convnext_base)
 
 
 ## Model: ImageNet ConvNext Large
@@ -115,7 +124,7 @@ def load_imnet_convnext_large():
     model.classifier[-1] = torch.nn.Identity()
     return model
 
-evaluate_model("imagenet_convnext_large", load_imnet_convnext_large, train)
+evaluate_model("imagenet_convnext_large", load_imnet_convnext_large)
 
 
 ## Model: ImageNet ResNet18
@@ -124,7 +133,7 @@ def load_imnet_resnet18():
     model.fc = torch.nn.Identity()
     return model
 
-evaluate_model("imagenet_resnet18", load_imnet_resnet18, train)
+evaluate_model("imagenet_resnet18", load_imnet_resnet18)
 
 
 

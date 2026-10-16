@@ -20,5 +20,6 @@ echo "Job started on $(hostname) at $(date)"
 echo "Using environment: $(which python)"
 
 python -u Training_/gz_foundation_models.py
+python -u Training_/join_representations.py
 
 echo "Job finished at $(date)"

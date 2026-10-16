@@ -41,5 +41,14 @@ Each training run logs loss, kNN accuracy, ID and TPCF scores per epoch and writ
 sbatch byol.sh          # or dino.sh / supervised.sh / foundation_models.sh
 ```
 
+Radio (RGZ FIRST images for self-supervision, MiraBest FRI/FRII for accuracy): convert the FITS once with
+`Training_/rgz_fits_to_png.py`, then select the radio configs with `CONFIG`:
+
+```bash
+sbatch --export=ALL,CONFIG=Training_/byol_radio.yaml byol.sh
+sbatch --export=ALL,CONFIG=Training_/dino_radio.yaml dino.sh
+sbatch --export=ALL,CONFIG=Training_/gz_foundation_models_radio.yaml foundation_models.sh
+```
+
 Place `Galaxy10_DECals.h5` in `data_models/`. Python dependencies: `requirements.txt`, plus `byol-pytorch`
 and `vit-pytorch`.

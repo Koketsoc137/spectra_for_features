@@ -1,4 +1,5 @@
 import backbone.data_handle.Custom as Custom
+import backbone.data_handle.MiraBest as MiraBest
 import torch
 import importlib
 import h5py
@@ -83,6 +84,36 @@ def Galaxy_zoo_data_loaders(galaxyzoo_dir = "/idia/projects/camil/Koketso/galaxy
                             num_workers = num_workers)
 
     return loader, val_loader, class_loader
+
+def radio_galaxy_zoo_data_loaders(rgz_dir = "/idia/projects/camil/Koketso/radiogalaxyzoo/images",
+                                  mirabest_dir = "/idia/projects/camil/Koketso/radiogalaxyzoo/MiraBest/F_batches",
+                                  mirabest_subset = "full",
+                                  val_split = None,
+                                  train_split = 0.8,
+                                  num_workers = 30,
+                                  batch_size = 128,
+                                  resize = 224,
+                                  crop_size = 224):
+    #unlabelled RGZ FIRST images (train/val, same split scheme as Galaxy_zoo_data_loaders)
+    #plus labelled MiraBest FRI/FRII (train/test) used for accuracy
+    if val_split is None:
+        val_split = 1-train_split
+
+    dataset = Custom.dataset(rgz_dir)
+    names = [name[0].split('/')[-1] for name in dataset.imgs]
+    datasets = Custom.train_val_dataset(dataset, source_ids = names, val_split = val_split, train_size = train_split)
+
+    loader = DataLoader(Custom.Custom_labelled(datasets['train'], names = datasets['train_ids'], resize = resize, crop = crop_size),
+                        batch_size, shuffle = True, num_workers = num_workers)
+    val_loader = DataLoader(Custom.Custom_labelled(datasets['val'], names = datasets['val_ids'], resize = resize, crop = crop_size),
+                            batch_size, shuffle = True, num_workers = num_workers)
+
+    mirabest_train = MiraBest.MiraBest(mirabest_dir, train = True, subset = mirabest_subset, resize = resize, crop = crop_size)
+    mirabest_test = MiraBest.MiraBest(mirabest_dir, train = False, subset = mirabest_subset, resize = resize, crop = crop_size)
+    mirabest_train_loader = DataLoader(mirabest_train, batch_size, shuffle = False, num_workers = num_workers)
+    mirabest_test_loader = DataLoader(mirabest_test, batch_size, shuffle = False, num_workers = num_workers)
+
+    return loader, val_loader, mirabest_train_loader, mirabest_test_loader
 
 def galaxyzoo10(batch_size = 256,
                train_split = None,

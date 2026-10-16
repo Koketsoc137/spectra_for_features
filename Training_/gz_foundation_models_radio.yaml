@@ -1,0 +1,11 @@
+data:
+  dataset: radio  # RGZ FIRST -> _train/_val, MiraBest FRI/FRII (train + test) -> _class
+  rgz_dir: /idia/projects/camil/Koketso/radiogalaxyzoo/images
+  mirabest_dir: /idia/projects/camil/Koketso/radiogalaxyzoo/MiraBest/F_batches
+  mirabest_subset: full  # full | confident
+  train_split: 0.8
+  num_workers: 30
+
+paths:
+  weights_dir: data_models
+  rep_dir: /idia/projects/camil/Koketso/radio_galaxy_zoo_representations
