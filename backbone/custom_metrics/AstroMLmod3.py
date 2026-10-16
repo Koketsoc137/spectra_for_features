@@ -35,7 +35,8 @@ def rr_fraction(bins, k):
     instead of estimated from noisy background samples.
     """
     a = 0.5 * (k - 1)
-    u = np.clip(1.0 - 0.5 * np.asarray(bins, dtype=float), 0.0, 1.0)
+    # (1 + cos) / 2 ~ Beta(a, a), with cos = 1 - d^2 / 2 for chord distance d
+    u = np.clip(1.0 - 0.25 * np.asarray(bins, dtype=float) ** 2, 0.0, 1.0)
     return -np.diff(betainc(a, a, u))
 
 
@@ -167,7 +168,8 @@ def TPCF_score(
     metric="cosine",
     bin_scale="linear",
 ):
-    representations = np.asarray(representations, dtype=float)
+    # unit-normalise first so a single extreme-norm point cannot dominate the PCA
+    representations = _unit_normalize(np.asarray(representations, dtype=float))
     sample_size = int(len(representations) * sub_sample)
 
     # PCA once on all points, then subsample; sklearn PCA spans the same
