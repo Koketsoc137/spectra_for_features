@@ -359,7 +359,15 @@ def train_resnet(config):
                 
             pkl_filename = output_dir / f"{artifact_prefix}_train_val_id_score.csv"
             with open(pkl_filename, 'wb') as file:
-                pickle.dump(ID_scores,file) 
+                pickle.dump(ID_scores,file)
+
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'seed': seed,
+            }, output_dir / f"{artifact_prefix}_epoch_{epoch}.pt")
 
         pkl_filename = representations_dir / f"{artifact_prefix}_test_representations_labels{epoch}.csv"
         with open(pkl_filename, 'wb') as file:
