@@ -1,7 +1,4 @@
-# Model weights, checkpoints and datasets
-*.pth
-*.pt
-*.h5
+dinov3_convnext_base_pretrain_lvd1689m-801f2ba9.pth
 
 # Generated plots, scores, and results
 plots/
@@ -12,9 +9,8 @@ results/
 
 # Local data, weights, outputs and caches
 data_/
-data_models
+data_models/
 logs/
-wandb/
 __pycache__/
 .ipynb_checkpoints/
 
