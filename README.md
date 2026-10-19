@@ -1,7 +1,6 @@
 # spectra_for_features
 
-Measures the quality of deep-learning representations of galaxy images (Galaxy10 DECaLS / Galaxy Zoo) using
-astronomy-style statistics: the two-point correlation function (TPCF) score, intrinsic dimension (TwoNN)
+Measures the quality of deep-learning representations of galaxy images (Galaxy10 DECaLS / Galaxy Zoo) by computing geometric properties of representation spaces: the two-point correlation function (TPCF) score, intrinsic dimension (TwoNN)
 and kNN accuracy.
 
 ## Metrics over training
