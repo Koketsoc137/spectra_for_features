@@ -165,8 +165,12 @@ def train_resnet(config):
     plt.figure(figsize=(15,10))
     plt.rcParams.update({'font.size': 20}) 
     """
+    #resume from the latest "<prefix>_epoch_N.pt" if one exists (reusing its seed keeps the label perturbation identical)
+    checkpoints = sorted(output_dir.glob(f"{artifact_prefix}_epoch_*.pt"), key=lambda p: int(p.stem.split("_")[-1]))
+    checkpoint = torch.load(checkpoints[-1], map_location=device, weights_only=False) if checkpoints else None
+
     #randomize seeds
-    seed = training_config["seed"]
+    seed = training_config["seed"] if checkpoint is None else checkpoint["seed"]
     if seed is None:
         seed = int(time.time())
     set_seed(seed)
@@ -204,63 +208,79 @@ def train_resnet(config):
     ID_scores = []
     train_val_accuracy_loss = []
     TPCF_scores = []
+    start_epoch = 1
+
+    if checkpoint is not None:
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        start_epoch = checkpoint["epoch"] + 1
+        with open(output_dir / f"{artifact_prefix}_train_test_TPCF_score.csv", 'rb') as file:
+            TPCF_scores = pickle.load(file)
+        with open(output_dir / f"{artifact_prefix}_train_val_accuracy_loss.csv", 'rb') as file:
+            train_val_accuracy_loss = pickle.load(file)
+        with open(output_dir / f"{artifact_prefix}_train_val_id_score.csv", 'rb') as file:
+            ID_scores = pickle.load(file)
+        print(f"Resuming from {checkpoints[-1]} at epoch {start_epoch}")
 
     epoch = 0
 
 
-    #Obtain train and test accuracies
-    model.eval()
+    #epoch-0 baseline, skipped when resuming
+    if checkpoint is None:
+        #Obtain train and test accuracies
+        model.eval()
 
     
-    train, val,train_loss,val_loss = evaluate(model, train_loader, test_loader,criterion, device)
+        train, val,train_loss,val_loss = evaluate(model, train_loader, test_loader,criterion, device)
 
-    train_val_accuracy_loss.append((train, val,train_loss,val_loss))
-
-
+        train_val_accuracy_loss.append((train, val,train_loss,val_loss))
 
 
-    #get representatations
-
-    test_representations, test_labels,_ = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
-    train_representations,train_labels,_ = cust.get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
 
 
-    #conpute the id_score
-    id_score_test,std_test = ID.id_score(test_representations)
-    id_score_train,std_train = ID.id_score(train_representations)
+        #get representatations
+
+        test_representations, test_labels,_ = cust.get_representations(model = model,loader = test_loader, batch_size = batch_size, epoch = 0,device  = device)
+        train_representations,train_labels,_ = cust.get_representations(model = model,loader = train_loader, batch_size = batch_size, epoch = 0,device  = device)
+
+
+        #conpute the id_score
+        id_score_test,std_test = ID.id_score(test_representations)
+        id_score_train,std_train = ID.id_score(train_representations)
     
-    ID_scores.append((id_score_test,std_test,id_score_train,std_train))
+        ID_scores.append((id_score_test,std_test,id_score_train,std_train))
 
-    #The two pont correlatiion function scores on training and test data
+        #The two pont correlatiion function scores on training and test data
 
-    TPCF_score_val = AstroMLmod.TPCF_score(test_representations, epoch = epoch)
-    TPCF_score_train = AstroMLmod.TPCF_score(train_representations, epoch = epoch)
+        TPCF_score_val = AstroMLmod.TPCF_score(test_representations, epoch = epoch)
+        TPCF_score_train = AstroMLmod.TPCF_score(train_representations, epoch = epoch)
 
 
-    TPCF_scores.append((TPCF_score_val,TPCF_score_train))
-
-    
-    #intrinsic_dimension.append((id_score,std))
+        TPCF_scores.append((TPCF_score_val,TPCF_score_train))
 
     
-    #Faltten the manifold
+        #intrinsic_dimension.append((id_score,std))
 
-    pkl_filename = representations_dir / f"{artifact_prefix}_test_representations_labels{epoch}.csv"
-    with open(pkl_filename, 'wb') as file:
-        pickle.dump((test_representations,test_labels),file)
+    
+        #Faltten the manifold
+
+        pkl_filename = representations_dir / f"{artifact_prefix}_test_representations_labels{epoch}.csv"
+        with open(pkl_filename, 'wb') as file:
+            pickle.dump((test_representations,test_labels),file)
             
-    pkl_filename = representations_dir / f"{artifact_prefix}_train_representations_labels{epoch}.csv"
-    with open(pkl_filename, 'wb') as file:
-        pickle.dump((train_representations,train_labels),file)
+        pkl_filename = representations_dir / f"{artifact_prefix}_train_representations_labels{epoch}.csv"
+        with open(pkl_filename, 'wb') as file:
+            pickle.dump((train_representations,train_labels),file)
 
     
         
-    fig = plt.figure(dpi = 300)
-    plt.style.use("default")
-    plt.figure(figsize=(15,10))
-    print("Epoch: 0")
+        fig = plt.figure(dpi = 300)
+        plt.style.use("default")
+        plt.figure(figsize=(15,10))
+        print("Epoch: 0")
 
-    for epoch in range(1,num_epochs):
+    for epoch in range(start_epoch,num_epochs):
         model.classifier[-1] = class_layer
         print(class_layer)
         model.train()

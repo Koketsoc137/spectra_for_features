@@ -179,8 +179,21 @@ def train_byol(config):
     opt = torch.optim.Adam(learner.parameters(), lr=training_config["learning_rate"])
     loss_history = []
     knn_history = []
+    start_epoch = 0
 
-    for epoch in range(training_config["epochs"]):
+    #resume from the latest "<prefix>_epoch_N.pt" if one exists
+    checkpoints = sorted(output_dir.glob(f"{path_config['artifact_prefix']}_epoch_*.pt"), key=lambda p: int(p.stem.split("_")[-1]))
+    if checkpoints:
+        checkpoint = torch.load(checkpoints[-1], map_location=device, weights_only=False)
+        learner.load_state_dict(checkpoint["learner_state_dict"])
+        opt.load_state_dict(checkpoint["optimizer_state_dict"])
+        loss_history, knn_history = checkpoint["loss_history"], checkpoint["knn_history"]
+        start_epoch = checkpoint["epoch"]
+        best_loss = min(row["val_loss"] for row in loss_history)
+        if rank == 0:
+            print(f"Resuming from {checkpoints[-1]} at epoch {start_epoch}")
+
+    for epoch in range(start_epoch, training_config["epochs"]):
 
         loss_ = 0.0
         learner.train()
