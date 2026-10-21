@@ -47,7 +47,7 @@ knn:
   neighbors: 5
 
 paths:
-  output_dir: data_
+  output_dir: /idia/projects/camil/Koketso/data_
   artifact_prefix: dino_galaxy10
   checkpoint_name: dino_galaxy10_efficientnet_b0.pt
   best_checkpoint_name: best_dino_galaxy10_efficientnet_b0.pt

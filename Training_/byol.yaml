@@ -36,7 +36,7 @@ knn:
   neighbors: 5
 
 paths:
-  output_dir: data_
+  output_dir: /idia/projects/camil/Koketso/data_
   artifact_prefix: byol_galaxy10
   checkpoint_name: byol_galaxy10_efficientnet_b0.pt
   best_checkpoint_name: best_byol_galaxy10_efficientnet_b0.pt

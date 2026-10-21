@@ -33,7 +33,7 @@ The figure is produced by [notebooks/Model_TPCF_scores.ipynb](notebooks/Model_TP
 | `Training_/gz_foundation_models.py` | `foundation_models.sh` | Extracts features from pretrained models (Zoobot, DINOv3, ImageNet) |
 
 Each training run logs loss, kNN accuracy, ID and TPCF scores per epoch and writes checkpoints and CSVs to
-`data_/` using the run's `artifact_prefix` (e.g. `byol_galaxy10_*`).
+`/idia/projects/camil/Koketso/data_/` using the run's `artifact_prefix` (e.g. `byol_galaxy10_*`).
 
 ## Usage
 

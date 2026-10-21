@@ -26,6 +26,6 @@ scheduler:
   eta_min: 0.0000001
 
 paths:
-  output_dir: data_
-  representations_dir: plots
+  output_dir: /idia/projects/camil/Koketso/data_
+  representations_dir: /idia/projects/camil/Koketso/plots
   artifact_prefix: supervised_galaxy10_perturb30

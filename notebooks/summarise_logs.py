@@ -9,7 +9,7 @@ import pandas as pd
 import scienceplots
 
 root = Path(__file__).resolve().parents[1]
-logs, out = root / "logs", root / "plots"
+logs, out = root / "logs", Path("/idia/projects/camil/Koketso/plots")
 out.mkdir(exist_ok=True)
 
 # label-noise setting is not printed in the log, so map job id -> label here
