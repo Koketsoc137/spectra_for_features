@@ -3,6 +3,7 @@
 Measures the quality of deep-learning representations of galaxy images (Galaxy10 DECaLS / Galaxy Zoo) by computing geometric properties: the two-point correlation function (TPCF) score, intrinsic dimension (TwoNN)
 and anisotropy.
 
+
 ## Metrics over training
 
 ![Test-set representation metrics per epoch](notebooks/Test_metrics_grid.png)
