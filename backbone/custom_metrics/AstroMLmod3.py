@@ -167,6 +167,7 @@ def TPCF_score(
     method="analytic",
     metric="cosine",
     bin_scale="linear",
+    n_components=15,
 ):
     # unit-normalise first so a single extreme-norm point cannot dominate the PCA
     representations = _unit_normalize(np.asarray(representations, dtype=float))
@@ -174,7 +175,7 @@ def TPCF_score(
 
     # PCA once on all points, then subsample; sklearn PCA spans the same
     # subspace as viz.pca (IncrementalPCA) but is ~30x faster on the full set
-    reduced = PCA(n_components=min(15, representations.shape[1])).fit_transform(representations)
+    reduced = PCA(n_components=min(n_components, representations.shape[1])).fit_transform(representations)
 
     scores = []
     for _ in range(Nbootstrap):

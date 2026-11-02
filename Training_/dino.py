@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.distributed as dist
 from datetime import timedelta
@@ -187,7 +188,12 @@ def train_dino(config):
     train_learner = torch.nn.parallel.DistributedDataParallel(learner, device_ids=[device.index], find_unused_parameters=True) if distributed else learner
     scaler = torch.amp.GradScaler("cuda")
 
-    opt = torch.optim.Adam(learner.parameters(), lr=training_config["learning_rate"])
+    opt = torch.optim.AdamW(learner.parameters(), lr=training_config["learning_rate"], weight_decay=training_config["weight_decay"])
+    #per-step linear warmup then cosine decay, to avoid the early collapse seen without it
+    warmup_steps = training_config["warmup_epochs"] * len(train_loader)
+    total_steps = training_config["epochs"] * len(train_loader)
+    scheduler = torch.optim.lr_scheduler.LambdaLR(opt, lambda step: (step + 1) / warmup_steps if step < warmup_steps
+                                                  else 0.5 * (1 + math.cos(math.pi * (step - warmup_steps) / (total_steps - warmup_steps))))
     loss_history = []
     knn_history = []
     start_epoch = 0
@@ -198,6 +204,7 @@ def train_dino(config):
         checkpoint = torch.load(checkpoints[-1], map_location=device, weights_only=False)
         learner.load_state_dict(checkpoint["learner_state_dict"])
         opt.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         loss_history, knn_history = checkpoint["loss_history"], checkpoint["knn_history"]
         start_epoch = checkpoint["epoch"]
         best_loss = min(row["val_loss"] for row in loss_history)
@@ -221,8 +228,11 @@ def train_dino(config):
             #optimization steps
             opt.zero_grad()
             scaler.scale(loss).backward()
+            scaler.unscale_(opt)
+            torch.nn.utils.clip_grad_norm_(learner.parameters(), training_config["clip_grad"])
             scaler.step(opt)
             scaler.update()
+            scheduler.step()
             learner.update_moving_average() #update moving average of teacher encoder and center
             loss_ += loss.item()
             loss_per_500 = loss_
@@ -252,6 +262,7 @@ def train_dino(config):
             "Validation KNN score": val_knn_score,
             "ID score": float(id_score),
             "TPCF_score": float(tpcf_score),
+            "Learning rate": scheduler.get_last_lr()[0],
         })
         print(f"Epoch [{epoch + 1}/{training_config['epochs']}], Train loss: {train_loss:.4f}, Validation loss: {val_loss:.4f}")
 
@@ -290,6 +301,7 @@ def train_dino(config):
                 'epoch': epoch + 1,
                 'learner_state_dict': learner.state_dict(),
                 'optimizer_state_dict': opt.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
                 'loss_history': loss_history,
                 'knn_history': knn_history,
             }, output_dir / f"{path_config['artifact_prefix']}_epoch_{epoch + 1}.pt")
