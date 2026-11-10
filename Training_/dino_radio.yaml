@@ -43,7 +43,8 @@ dino:
   projection_layers: 4
   student_temp: 0.1
   teacher_temp: 0.04
-  local_upper_crop_scale: 0.4
+  local_lower_crop_scale: 0.3
+  local_upper_crop_scale: 0.6
   global_lower_crop_scale: 0.5
   moving_average_decay: 0.996
   center_moving_average_decay: 0.9
@@ -53,6 +54,6 @@ knn:
 
 paths:
   output_dir: /idia/projects/camil/Koketso/data_
-  artifact_prefix: dino_rgz_v2
-  checkpoint_name: dino_rgz_v2_efficientnet_b0.pt
-  best_checkpoint_name: best_dino_rgz_v2_efficientnet_b0.pt
+  artifact_prefix: dino_rgz_v3
+  checkpoint_name: dino_rgz_v3_efficientnet_b0.pt
+  best_checkpoint_name: best_dino_rgz_v3_efficientnet_b0.pt

@@ -65,13 +65,13 @@ def evaluate(learner, val_loader, knn_train_loader, knn_test_loader, device, epo
         for images, labels, names in val_loader:
             images = images.to(device)
             val_loss += learner(images).item()
-            embeddings = learner(images, return_embedding=True)[1]
+            embeddings = learner.teacher_encoder(images, return_projection=False)
             val_features.extend(embeddings.cpu().tolist())
             val_names.extend(names)
             val_labels.extend(labels.tolist())
 
         for images, labels, names in knn_train_loader:
-            embeddings = learner(images.to(device), return_embedding=True)[1]
+            embeddings = learner.teacher_encoder(images.to(device), return_projection=False)
             train_features.extend(embeddings.cpu().tolist())
             train_names.extend(names)
             train_labels.extend(labels.tolist())
@@ -80,7 +80,7 @@ def evaluate(learner, val_loader, knn_train_loader, knn_test_loader, device, epo
         if knn_test_loader is not val_loader:
             test_features, test_names, test_labels = [], [], []
             for images, labels, names in knn_test_loader:
-                embeddings = learner(images.to(device), return_embedding=True)[1]
+                embeddings = learner.teacher_encoder(images.to(device), return_projection=False)
                 test_features.extend(embeddings.cpu().tolist())
                 test_names.extend(names)
                 test_labels.extend(labels.tolist())
@@ -184,6 +184,9 @@ def train_dino(config):
         moving_average_decay=dino_config["moving_average_decay"],
         center_moving_average_decay=dino_config["center_moving_average_decay"],
     )
+    #vit_pytorch hard-codes a 0.05 lower bound; tiny crops of galaxy cutouts are mostly sky
+    learner.local_crop = tv.transforms.RandomResizedCrop((data_config["crop_size"], data_config["crop_size"]),
+                                                         scale=(dino_config["local_lower_crop_scale"], dino_config["local_upper_crop_scale"]))
     learner = learner.to(device)
     train_learner = torch.nn.parallel.DistributedDataParallel(learner, device_ids=[device.index], find_unused_parameters=True) if distributed else learner
     scaler = torch.amp.GradScaler("cuda")

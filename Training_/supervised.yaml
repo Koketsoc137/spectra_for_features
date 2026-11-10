@@ -13,7 +13,7 @@ data:
   val_split: 0.3
   resize: 256
   crop_size: 224
-  perturb_labels: true
+  perturb_labels: false
   perturb_percentage: 30
 
 model:
@@ -28,4 +28,4 @@ scheduler:
 paths:
   output_dir: /idia/projects/camil/Koketso/data_
   representations_dir: /idia/projects/camil/Koketso/plots
-  artifact_prefix: supervised_galaxy10_perturb30
+  artifact_prefix: supervised_2
