@@ -11,7 +11,7 @@ data:
   dataset_path: data_models/Galaxy10_DECals.h5
   train_split: 0.7
   val_split: 0.3
-  resize: 256
+  resize: 224
   crop_size: 224
   perturb_labels: false
   perturb_percentage: 30
@@ -28,4 +28,4 @@ scheduler:
 paths:
   output_dir: /idia/projects/camil/Koketso/data_
   representations_dir: /idia/projects/camil/Koketso/plots
-  artifact_prefix: supervised_2
+  artifact_prefix: supervised_3

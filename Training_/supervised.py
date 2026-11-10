@@ -230,6 +230,7 @@ def train_resnet(config):
     if checkpoint is None:
         #Obtain train and test accuracies
         model.eval()
+        train_loader.dataset.dataset.eval_mode = True
 
     
         train, val,train_loss,val_loss = evaluate(model, train_loader, test_loader,criterion, device)
@@ -258,8 +259,15 @@ def train_resnet(config):
 
 
         TPCF_scores.append((TPCF_score_val,TPCF_score_train))
+        wandb.log({
+            "Validation epoch loss": float(val_loss)/len(test_loader),
+            "Train accuracy": train,
+            "Validation accuracy": val,
+            "ID score": float(id_score_test),
+            "TPCF_score": float(TPCF_score_val[0]),
+        })
 
-    
+
         #intrinsic_dimension.append((id_score,std))
 
     
@@ -280,10 +288,11 @@ def train_resnet(config):
         plt.figure(figsize=(15,10))
         print("Epoch: 0")
 
-    for epoch in range(start_epoch,num_epochs):
+    for epoch in range(start_epoch,num_epochs + 1):
         model.classifier[-1] = class_layer
         print(class_layer)
         model.train()
+        train_loader.dataset.dataset.eval_mode = False
         running_loss = 0.0
         
         for images, labels, names in train_loader:
@@ -313,6 +322,7 @@ def train_resnet(config):
         scheduler.step()
         print(f'Epoch [{epoch}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
         model.eval()
+        train_loader.dataset.dataset.eval_mode = True
         """
         Model evaluation
         """

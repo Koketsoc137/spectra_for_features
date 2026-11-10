@@ -53,6 +53,10 @@ def evaluate(learner, val_loader, knn_train_loader, knn_test_loader, device, epo
     output_dir = Path(__file__).resolve().parents[1] / path_config["output_dir"]
     artifact_prefix = path_config["artifact_prefix"]
     learner.eval()
+    #galaxy10 train/val share one ArrayDataset: deterministic transforms while evaluating
+    base = getattr(val_loader.dataset, "dataset", None)
+    if hasattr(base, "eval_mode"):
+        base.eval_mode = True
     val_loss = 0.0
     val_features = []
     val_names = []
@@ -107,6 +111,8 @@ def evaluate(learner, val_loader, knn_train_loader, knn_test_loader, device, epo
 
     id_score, _ = ID.id_score(val_features)
     tpcf_score, _ = AstroMLmod.TPCF_score(val_features)
+    if hasattr(base, "eval_mode"):
+        base.eval_mode = False
     return val_loss, train_knn_score, val_knn_score, id_score, tpcf_score
 
 
@@ -214,6 +220,22 @@ def train_dino(config):
         if rank == 0:
             print(f"Resuming from {checkpoints[-1]} at epoch {start_epoch}")
 
+    #epoch 0 = pretrained baseline before any training; epoch k = after k epochs
+    if start_epoch == 0 and rank == 0:
+        val_loss, train_knn_score, val_knn_score, id_score, tpcf_score = evaluate(
+            learner, val_loader, knn_train_loader, knn_test_loader, device, 0, config
+        )
+        knn_history.append({"epoch": 0, "train_knn_score": train_knn_score, "val_knn_score": val_knn_score})
+        wandb.log({
+            "Validation epoch loss": val_loss,
+            "Train KNN score": train_knn_score,
+            "Validation KNN score": val_knn_score,
+            "ID score": float(id_score),
+            "TPCF_score": float(tpcf_score),
+        })
+    if distributed:
+        dist.barrier()
+
     for epoch in range(start_epoch, training_config["epochs"]):
 
         loss_ = 0.0
@@ -248,10 +270,10 @@ def train_dino(config):
             dist.barrier()
             continue
         val_loss, train_knn_score, val_knn_score, id_score, tpcf_score = evaluate(
-            learner, val_loader, knn_train_loader, knn_test_loader, device, epoch, config
+            learner, val_loader, knn_train_loader, knn_test_loader, device, epoch + 1, config
         )
         loss_history.append({
-            "epoch": epoch,
+            "epoch": epoch + 1,
             "train_loss": train_loss,
             "val_loss": val_loss,
         })
@@ -281,7 +303,7 @@ def train_dino(config):
 
 
         knn_history.append({
-            "epoch": epoch,
+            "epoch": epoch + 1,
             "train_knn_score": train_knn_score,
             "val_knn_score": val_knn_score,
         })
